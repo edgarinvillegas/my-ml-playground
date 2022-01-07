@@ -9,8 +9,8 @@ class Net(nn.Module):
     def __init__(self):
         #TODO: Complete this function
         super().__init__()
-        self.fc1 = nn.Linear(32*32*3, 1000)
-        self.fc2 = nn.Linear(1000, 300)
+        self.fc1 = nn.Linear(32*32*3, 900)
+        self.fc2 = nn.Linear(900, 300)
         self.fc3 = nn.Linear(300, 90)
         self.fc4 = nn.Linear(90, 10)
         
