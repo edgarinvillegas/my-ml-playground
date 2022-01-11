@@ -15,6 +15,7 @@ from smdebug.pytorch import get_hook
 
 def train(args, net, device):
     hook = get_hook(create_if_not_exists=True)
+    print('hook: ', hook)
     batch_size = args.batch_size
     epoch = args.epoch
     transform_train = transforms.Compose(
