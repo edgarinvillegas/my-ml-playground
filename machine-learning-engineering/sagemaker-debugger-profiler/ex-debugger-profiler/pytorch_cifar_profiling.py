@@ -11,10 +11,13 @@ import torchvision.transforms as transforms
 
 from smdebug import modes
 from smdebug.profiler.utils import str2bool
-from smdebug.pytorch import get_hook
+import smdebug.pytorch as smd
+#from smd import get_hook
 
 def train(args, net, device):
     #TODO: Create Hook
+    hook = smd.get_hook(create_if_not_exists=True)
+    print('hook: ', hook)
 
     batch_size = args.batch_size
     epoch = args.epoch
@@ -58,10 +61,15 @@ def train(args, net, device):
     epoch_times = []
 
     #TODO: Set Hook to track the loss
+    if hook:
+        hook.register_loss(loss_optim)
+        print('loss registered')
 
     for i in range(epoch):
         print("START TRAINING")
         # TODO: Set hook to train mode
+        if hook:
+            hook.set_mode(smd.modes.TRAIN)
 
         start = time.time()
         net.train()
@@ -77,6 +85,8 @@ def train(args, net, device):
 
         print("START VALIDATING")
         #TODO: Set hook to eval mode
+        if hook:
+            hook.set_mode(smd.modes.EVAL)
         net.eval()
         val_loss = 0
         with torch.no_grad():
