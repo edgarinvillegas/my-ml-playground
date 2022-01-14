@@ -71,6 +71,8 @@ def _get_test_data_loader(test_batch_size, training_dir):
     )
 
 def train(args):
+    print('Data dir (--data-dir): ', args.data_dir)
+    print('Command line args: ', args)    
     train_loader = _get_train_data_loader(args.batch_size, args.data_dir)
     test_loader = _get_test_data_loader(args.test_batch_size, args.data_dir)
 
@@ -170,5 +172,5 @@ if __name__ == "__main__":
     parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
     parser.add_argument("--data-dir", type=str, default=os.environ["SM_CHANNEL_TRAINING"])
     parser.add_argument("--num-gpus", type=int, default=os.environ["SM_NUM_GPUS"])
-
+        
     train(parser.parse_args())
