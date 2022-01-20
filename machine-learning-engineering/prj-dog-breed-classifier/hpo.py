@@ -159,16 +159,16 @@ def main(args):
         (test_loss, test_accuracy) = test(model, testloader, loss_criterion, epoch)
 
         print(f"Epoch {epoch + 1}.. "
-              f"Progress: {100 * epoch / epochs:.1f}%.. "
-              f"Train loss: {train_loss:.3f}.. "
-              f"Test loss: {test_loss:.3f}.. "
-              f"Test accuracy: {test_accuracy:.3f}.. ")
+              f"Progress: {100 * epoch / epochs:.1f}% "
+              f"Train loss: {train_loss:.3f} "
+              f"Test loss: {test_loss:.3f} "
+              f"Test accuracy: {test_accuracy:.3f}")
 
     '''
     TODONE: Test the model to see its accuracy
     '''
     (test_loss, test_accuracy) = test(model, testloader, loss_criterion)
-    print(f"Final test accuracy: {test_accuracy:.3f}.. ")
+    print(f"Final test accuracy: {test_accuracy:.3f}")
 
     '''
     TODONE: Save the trained model
