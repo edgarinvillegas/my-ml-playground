@@ -1,5 +1,3 @@
-#TODONE: Import your dependencies.
-#For instance, below are some dependencies you might need if you are using Pytorch
 import numpy as np
 import torch
 from torch import nn
@@ -11,11 +9,12 @@ import argparse
 import os
 import json
 
-#TODO: Import dependencies for Debugging andd Profiling
+
+# TODO: Import dependencies for Debugging andd Profiling
 
 def train(model, trainloader, criterion, optimizer, epoch):
     '''
-    TODO: Complete this function that can take a model and
+    TODONE: Complete this function that can take a model and
           data loaders for training and will get train the model
           Remember to include any debugging/profiling hooks that you might need
     '''
@@ -46,20 +45,15 @@ def train(model, trainloader, criterion, optimizer, epoch):
 
     running_avg_loss /= len(trainloader.dataset)
 
-    return (running_avg_loss, )
+    return (running_avg_loss,)
 
 
 def test(model, testloader, criterion, epoch=0):
     '''
-    TODO: Complete this function that can take a model and a
-          testing data loader and will get the test accuray/loss of the model
+    TODONE: Complete this function that can take a model and
+          data loaders for training and will get train the model
           Remember to include any debugging/profiling hooks that you might need
     '''
-    '''
-        TODO: Complete this function that can take a model and
-              data loaders for training and will get train the model
-              Remember to include any debugging/profiling hooks that you might need
-        '''
     device = get_device()
     accuracies = []
     epoch_avg_loss = 0
@@ -69,7 +63,7 @@ def test(model, testloader, criterion, epoch=0):
             inputs, labels = inputs.to(device), labels.to(device)
             logps = model.forward(inputs)
             batch_loss = criterion(logps, labels)
-            #test_losses.append(batch_loss.item())
+            # test_losses.append(batch_loss.item())
             epoch_avg_loss += batch_loss.item()
 
             # Calculate accuracy
@@ -84,10 +78,12 @@ def test(model, testloader, criterion, epoch=0):
     model.train()
     return epoch_avg_loss, epoch_avg_accuracy
 
+
 def get_device():
     # Use GPU if it's available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return device
+
 
 def net():
     '''
@@ -135,68 +131,19 @@ def create_data_loaders(train_dir, batch_size, test_dir, test_batch_size):
     return trainloader, testloader
 
 
-# def train_test(model, trainloader, testloader, criterion, optimizer, epochs):
-#     ImageFile.LOAD_TRUNCATED_IMAGES = True
-#     steps = 0
-#     running_loss = 0
-#     print_every = 5
-#     device = get_device()
-#     for epoch in range(epochs):
-#         for inputs, labels in trainloader:
-#             steps += 1
-#             # Move input and label tensors to the default device
-#             inputs, labels = inputs.to(device), labels.to(device)
-#
-#             logps = model.forward(inputs)
-#             loss = criterion(logps, labels)
-#
-#             optimizer.zero_grad()
-#             loss.backward()
-#             optimizer.step()
-#
-#             running_loss += loss.item()
-#
-#             if steps % print_every == 0:
-#                 test_loss = 0
-#                 accuracy = 0
-#                 model.eval()
-#                 with torch.no_grad():
-#                     for inputs, labels in testloader:
-#                         inputs, labels = inputs.to(device), labels.to(device)
-#                         logps = model.forward(inputs)
-#                         batch_loss = criterion(logps, labels)
-#
-#                         test_loss += batch_loss.item()
-#
-#                         # Calculate accuracy
-#                         ps = torch.exp(logps)
-#                         top_p, top_class = ps.topk(1, dim=1)
-#                         equals = top_class == labels.view(*top_class.shape)
-#                         accuracy += torch.mean(equals.type(torch.FloatTensor)).item()
-#
-#                 print(f"Epoch {epoch + 1}/{epochs}.. "
-#                       f"Train loss: {running_loss / print_every:.3f}.. "
-#                       f"Test loss: {test_loss / len(testloader):.3f}.. "
-#                       f"Test accuracy: {accuracy / len(testloader):.3f}.. "
-#                       f"Progress: {100 * steps / epochs / len(trainloader):.1f}%"
-#                       )
-#                 running_loss = 0
-#                 model.train()
-#     return model
-
 def main(args):
     print('ALL ARGS: ', args)
     '''
     TODONE: Initialize a model by calling the net function
     '''
     model = net()
-    
+
     '''
     TODONE: Create your loss and optimizer
     '''
     loss_criterion = nn.NLLLoss()
     optimizer = optim.Adam(model.classifier.parameters(), lr=args.lr)
-    
+
     '''
     TODONE: Call the train function to start training your model
     Remember that you will need to set up a way to get training data from S3
@@ -219,21 +166,20 @@ def main(args):
               f"Test loss: {test_loss:.3f}.. "
               f"Test accuracy: {test_accuracy:.3f}.. ")
 
-    # model=train(model, trainloader, loss_criterion, optimizer)
-    
     '''
     TODONE: Test the model to see its accuracy
     '''
     (test_loss, test_accuracy) = test(model, testloader, loss_criterion)
     print(f"Final test accuracy: {test_accuracy:.3f}.. ")
-    
+
     '''
     TODONE: Save the trained model
     '''
     torch.save(model, args.model_dir + '/model.pth')
 
-if __name__=='__main__':
-    parser=argparse.ArgumentParser()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
     '''
     TODONE: Specify any training args that you might need
     '''
@@ -270,7 +216,7 @@ if __name__=='__main__':
     parser.add_argument("--test-dir", type=str, default=os.environ["SM_CHANNEL_TEST"])
     parser.add_argument("--num-gpus", type=int, default=os.environ["SM_NUM_GPUS"])
 
-    args=parser.parse_args()
-    
+    args = parser.parse_args()
+
     main(args)
     print('done')
