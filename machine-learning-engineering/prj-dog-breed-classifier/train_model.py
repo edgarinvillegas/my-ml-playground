@@ -10,15 +10,26 @@ import os
 import json
 
 
-# TODO: Import dependencies for Debugging andd Profiling
+# DONE: Import dependencies for Debugging andd Profiling
+# ====================================#
+# 1. Import SMDebug framework class. #
+# ====================================#
+import smdebug.pytorch as smd
 
-def train(model, trainloader, criterion, optimizer, epoch):
+
+def train(model, trainloader, criterion, optimizer, hook, epoch):
     '''
-    TODONE: Complete this function that can take a model and
+    DONE: Complete this function that can take a model and
           data loaders for training and will get train the model
           Remember to include any debugging/profiling hooks that you might need
     '''
     model.train()
+    # =================================================#
+    # 2a. Set the SMDebug hook for the training phase. #
+    # =================================================#
+    #if hook:
+    hook.set_mode(smd.modes.TRAIN)        
+        
     device = get_device()
     running_avg_loss = 0
     print_every = 10
@@ -30,6 +41,8 @@ def train(model, trainloader, criterion, optimizer, epoch):
 
         logps = model.forward(inputs)
         loss = criterion(logps, labels)
+        print('recording train loss tensor')
+        hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=loss)
 
         optimizer.zero_grad()
         loss.backward()
@@ -48,22 +61,32 @@ def train(model, trainloader, criterion, optimizer, epoch):
     return (running_avg_loss,)
 
 
-def test(model, testloader, criterion, epoch=0):
+def test(model, testloader, criterion, hook=None, epoch=0):
     '''
-    TODONE: Complete this function that can take a model and
+    DONE: Complete this function that can take a model and
           data loaders for training and will get train the model
           Remember to include any debugging/profiling hooks that you might need
     '''
+    model.eval()
+    # ===================================================#
+    # 2b. Set the SMDebug hook for the validation phase. #
+    # ===================================================#
+    #if hook:
+    hook.set_mode(smd.modes.EVAL)
+    
     device = get_device()
     accuracies = []
     epoch_avg_loss = 0
-    model.eval()
+    
     with torch.no_grad():
         for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
             logps = model.forward(inputs)
             batch_loss = criterion(logps, labels)
             # test_losses.append(batch_loss.item())
+            print('recording test loss tensor')
+            hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=batch_loss)
+            
             epoch_avg_loss += batch_loss.item()
 
             # Calculate accuracy
@@ -87,7 +110,7 @@ def get_device():
 
 def net():
     '''
-    TODONE: Complete this function that initializes your model
+    DONE: Complete this function that initializes your model
           Remember to use a pretrained model
     '''
     model = models.densenet121(pretrained=True)
@@ -134,18 +157,32 @@ def create_data_loaders(train_dir, batch_size, test_dir, test_batch_size):
 def main(args):
     print('ALL ARGS: ', args)
     '''
-    TODONE: Initialize a model by calling the net function
+    DONE: Initialize a model by calling the net function
     '''
     model = net()
+    # model.to(get_device())
+    
+    # ======================================================#
+    # 3a. Register the SMDebug hook to save output tensors. #
+    # ======================================================#
+    #hook = smd.Hook.create_from_json_file()
+    #hook.register_hook(model)
+    #hook.register_module(model)
+    
+    hook = smd.get_hook(create_if_not_exists=True)    
 
     '''
-    TODONE: Create your loss and optimizer
+    DONE: Create your loss and optimizer
     '''
     loss_criterion = nn.NLLLoss()
     optimizer = optim.Adam(model.classifier.parameters(), lr=args.lr)
+    
+    #if hook:
+    # hook.register_loss(loss_criterion)
+    print('loss registered')
 
     '''
-    TODONE: Call the train function to start training your model
+    DONE: Call the train function to start training your model
     Remember that you will need to set up a way to get training data from S3
     '''
     trainloader, testloader = create_data_loaders(args.train_dir, args.batch_size, args.test_dir, args.test_batch_size)
@@ -157,8 +194,11 @@ def main(args):
 
     print('Start training...')
     for epoch in range(epochs):
-        (train_loss,) = train(model, trainloader, loss_criterion, optimizer, epoch)
-        (test_loss, test_accuracy) = test(model, testloader, loss_criterion, epoch)
+        # ===========================================================#
+        # 3b. Pass the SMDebug hook to the train and test functions. #
+        # ===========================================================#
+        (train_loss,) = train(model, trainloader, loss_criterion, optimizer, hook, epoch)
+        (test_loss, test_accuracy) = test(model, testloader, loss_criterion, hook, epoch)
 
         print(f"Epoch {epoch + 1}.. "
               f"Progress: {100 * epoch / epochs:.1f}% "
@@ -167,13 +207,13 @@ def main(args):
               f"Test accuracy: {test_accuracy:.3f}")
 
     '''
-    TODONE: Test the model to see its accuracy
+    DONE: Test the model to see its accuracy
     '''
-    (test_loss, test_accuracy) = test(model, testloader, loss_criterion)
+    (test_loss, test_accuracy) = test(model, testloader, loss_criterion, hook)
     print(f"Final test accuracy: {test_accuracy:.3f}")
 
     '''
-    TODONE: Save the trained model
+    DONE: Save the trained model
     '''
     torch.save(model, args.model_dir + '/model.pth')
 
@@ -181,7 +221,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     '''
-    TODONE: Specify any training args that you might need
+    DONE: Specify any training args that you might need
     '''
     parser.add_argument(
         "--batch-size",
