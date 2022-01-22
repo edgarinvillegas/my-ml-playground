@@ -41,7 +41,7 @@ def train(model, trainloader, criterion, optimizer, hook, epoch):
 
         logps = model.forward(inputs)
         loss = criterion(logps, labels)
-        print('recording train loss tensor')
+        # print('recording train loss tensor')
         hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=loss)
 
         optimizer.zero_grad()
@@ -84,7 +84,7 @@ def test(model, testloader, criterion, hook=None, epoch=0):
             logps = model.forward(inputs)
             batch_loss = criterion(logps, labels)
             # test_losses.append(batch_loss.item())
-            print('recording test loss tensor')
+            # print('recording test loss tensor')
             hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=batch_loss)
             
             epoch_avg_loss += batch_loss.item()
@@ -127,6 +127,7 @@ def net():
         ('output', nn.LogSoftmax(dim=1))
     ]))
     model.classifier = classifier
+    print('Device: ', get_device())
     model.to(get_device())
     return model
 
@@ -179,7 +180,7 @@ def main(args):
     
     #if hook:
     # hook.register_loss(loss_criterion)
-    print('loss registered')
+    # print('loss registered')
 
     '''
     DONE: Call the train function to start training your model
