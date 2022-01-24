@@ -128,7 +128,7 @@ def net():
     ]))
     model.classifier = classifier
     print('Device: ', get_device())
-    model.to(get_device())
+    # model.to(get_device())
     return model
 
 
@@ -155,13 +155,14 @@ def create_data_loaders(train_dir, batch_size, test_dir, test_batch_size):
     return trainloader, testloader
 
 
+
 def main(args):
     print('ALL ARGS: ', args)
     '''
     DONE: Initialize a model by calling the net function
     '''
     model = net()
-    # model.to(get_device())
+    model.to(get_device())
     
     # ======================================================#
     # 3a. Register the SMDebug hook to save output tensors. #
@@ -216,8 +217,25 @@ def main(args):
     '''
     DONE: Save the trained model
     '''
-    torch.save(model, args.model_dir + '/model.pth')
+    torch.save(model, args.model_dir + '/model2.pth')
 
+    
+def model_fn(model_dir):
+    model = net()
+    print('Calling model_fn, model_dir=', model_dir)
+    with open(os.path.join(model_dir, 'model2.pth'), 'rb') as f:
+        model.load_state_dict(torch.load(f))
+    return model
+
+
+def predict_fn(input_data, model):
+    device = get_device()
+    print('Calling predict_fn with device ', device, '. Data: input_data', input_data)
+    model.to(device)
+    model.eval()
+    with torch.no_grad():
+        return model(input_data.to(device))
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
