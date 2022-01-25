@@ -76,11 +76,16 @@ For profiling, these rules were chosen:
 - Low GPU Utilization
 - ProfilerReport
 
-### Results
-**TODO**: What are the results/insights did you get by profiling/debugging your model?
+As expected, the GPU utilization was higher than the CPU's: 
+![CPU/GPU Utilization](doc-assets/cpu-gpu utilization.png)
 
-**TODO** Remember to provide the profiler html/pdf file in your submission.
+Check the generated debugging/profiling repo in `Profiler-output/` folder.
 
+![Report screenshot](doc-assets/debugger-report-screenshot.png)
+
+It was interesting noting that the GPU spent more time on the dataloading than performing convolutional operations:
+
+![GPU pie chart](doc-assets/gpu-pie-chart.png)
 
 ## Model Deployment
 
@@ -89,6 +94,20 @@ The best model was deployed with the sagemaker sdk. It needed the companion `inf
 - Perform in-out data transformations during inference
 
 The endpoint expects a binary image and returns a JSON with the log softmax probabilites for the breeds, being the maximum one the predicted breed.
+
+Sample code to query the endpoint (having the predictor):
+```python
+import io
+import requests
+
+image_url = "https://as2.ftcdn.net/v2/jpg/dog97C.jpg"
+img_content = requests.get(image_url).content
+
+pred = predictor.predict(img_content, initial_args={"ContentType": "image/jpeg"})
+breed = torch.tensor(pred).argmax().item()
+print('Inferred breed index is', breed)
+```
+
 
 ![Endpoint overview](doc-assets/endpoint-1.png)
 
