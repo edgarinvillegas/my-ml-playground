@@ -27,22 +27,22 @@ def train(model, trainloader, criterion, optimizer, hook, epoch):
     # =================================================#
     # 2a. Set the SMDebug hook for the training phase. #
     # =================================================#
-    #if hook:
-    hook.set_mode(smd.modes.TRAIN)        
+    if hook:
+        hook.set_mode(smd.modes.TRAIN)        
         
     device = get_device()
     running_avg_loss = 0
     print_every = 10
 
     for batch_idx, (inputs, labels) in enumerate(trainloader):
-        # steps += 1
         # Move input and label tensors to the default device
         inputs, labels = inputs.to(device), labels.to(device)
 
         logps = model.forward(inputs)
         loss = criterion(logps, labels)
-        # print('recording train loss tensor')
-        hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=loss)
+        
+        if hook:
+            hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=loss)
 
         optimizer.zero_grad()
         loss.backward()
@@ -71,8 +71,8 @@ def test(model, testloader, criterion, hook=None, epoch=0):
     # ===================================================#
     # 2b. Set the SMDebug hook for the validation phase. #
     # ===================================================#
-    #if hook:
-    hook.set_mode(smd.modes.EVAL)
+    if hook:
+        hook.set_mode(smd.modes.EVAL)
     
     device = get_device()
     accuracies = []
@@ -84,8 +84,8 @@ def test(model, testloader, criterion, hook=None, epoch=0):
             logps = model.forward(inputs)
             batch_loss = criterion(logps, labels)
             # test_losses.append(batch_loss.item())
-            # print('recording test loss tensor')
-            hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=batch_loss)
+            if hook:
+                hook.record_tensor_value(tensor_name="NLLLoss", tensor_value=batch_loss)
             
             epoch_avg_loss += batch_loss.item()
 
@@ -128,7 +128,7 @@ def net():
     ]))
     model.classifier = classifier
     print('Device: ', get_device())
-    # model.to(get_device())
+    model.to(get_device())
     return model
 
 
@@ -217,26 +217,9 @@ def main(args):
     '''
     DONE: Save the trained model
     '''
-    torch.save(model, args.model_dir + '/model2.pth')
+    torch.save(model.cpu(), args.model_dir + '/model.pth')
 
     
-def model_fn(model_dir):
-    model = net()
-    print('Calling model_fn, model_dir=', model_dir)
-    with open(os.path.join(model_dir, 'model2.pth'), 'rb') as f:
-        model.load_state_dict(torch.load(f))
-    return model
-
-
-def predict_fn(input_data, model):
-    device = get_device()
-    print('Calling predict_fn with device ', device, '. Data: input_data', input_data)
-    model.to(device)
-    model.eval()
-    with torch.no_grad():
-        return model(input_data.to(device))
-    
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     '''
