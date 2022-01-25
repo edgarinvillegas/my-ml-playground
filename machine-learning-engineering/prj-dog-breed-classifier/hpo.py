@@ -15,9 +15,10 @@ def train(model, trainloader, criterion, optimizer, epoch):
     TODONE: Complete this function that can take a model and
           data loaders for training and will get train the model
           Remember to include any debugging/profiling hooks that you might need
-    '''
+    '''    
     model.train()
     device = get_device()
+    model.to(device)
     running_avg_loss = 0
     print_every = 10
 
@@ -56,6 +57,7 @@ def test(model, testloader, criterion, epoch=0):
     accuracies = []
     epoch_avg_loss = 0
     model.eval()
+    model.to(device)
     with torch.no_grad():
         for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -102,7 +104,7 @@ def net():
         ('output', nn.LogSoftmax(dim=1))
     ]))
     model.classifier = classifier
-    model.to(get_device())
+    # model.to(get_device()) # Moved outside
     return model
 
 
@@ -127,6 +129,7 @@ def create_data_loaders(train_dir, batch_size, test_dir, test_batch_size):
     trainloader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     testloader = torch.utils.data.DataLoader(test_data, batch_size=test_batch_size)
     return trainloader, testloader
+
 
 
 def main(args):
@@ -173,7 +176,7 @@ def main(args):
     '''
     TODONE: Save the trained model
     '''
-    torch.save(model, args.model_dir + '/model.pth')
+    torch.save(model.cpu(), args.model_dir + '/model.pth')
 
 
 if __name__ == '__main__':
