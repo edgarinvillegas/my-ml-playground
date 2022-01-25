@@ -18,12 +18,11 @@ def train(model, trainloader, criterion, optimizer, epoch):
     '''    
     model.train()
     device = get_device()
-    model.to(device)
+    # model.to(device)
     running_avg_loss = 0
     print_every = 10
 
     for batch_idx, (inputs, labels) in enumerate(trainloader):
-        # steps += 1
         # Move input and label tensors to the default device
         inputs, labels = inputs.to(device), labels.to(device)
 
@@ -57,13 +56,13 @@ def test(model, testloader, criterion, epoch=0):
     accuracies = []
     epoch_avg_loss = 0
     model.eval()
-    model.to(device)
+    # model.to(device)
     with torch.no_grad():
         for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
             logps = model.forward(inputs)
             batch_loss = criterion(logps, labels)
-            # test_losses.append(batch_loss.item())
+
             epoch_avg_loss += batch_loss.item()
 
             # Calculate accuracy
@@ -104,7 +103,7 @@ def net():
         ('output', nn.LogSoftmax(dim=1))
     ]))
     model.classifier = classifier
-    # model.to(get_device()) # Moved outside
+    model.to(get_device()) # Moved outside
     return model
 
 
