@@ -157,6 +157,8 @@ def create_data_loaders(train_dir, batch_size, test_dir, test_batch_size):
 
 
 def main(args):
+    # Print hyperparameters
+    print(f'HYPERPARAMS: batch_size={args.batch_size}; test_batchsize={args.test_batch_size}; epochs={args.epochs}; lr={args.lr}')
     print('ALL ARGS: ', args)
     '''
     DONE: Initialize a model by calling the net function
@@ -167,10 +169,12 @@ def main(args):
     # ======================================================#
     # 3a. Register the SMDebug hook to save output tensors. #
     # ======================================================#
+    # Following lines are commented because they did not work with Densenet model.
     #hook = smd.Hook.create_from_json_file()
     #hook.register_hook(model)
     #hook.register_module(model)
     
+    # get_hook does work with densenet model.
     hook = smd.get_hook(create_if_not_exists=True)    
 
     '''
