@@ -78,4 +78,25 @@ For instance, if it's through API gateway, restrict the permissions to this serv
 
 Finally, adding the lambda to a VPC needs to be considered, if applicable. 
 
+## Concurrency
+We setup concurrency/autoscaling for both the lambda function and the endpoint
+
+For lambda, we reserved 3 instances and also provisioned concurrency of 2 always-on with the possibility to scale to a 3rd instance.
+![img.png](assets/concurrency-lambda.png)
+
+For the endpoint, we configured autoscaling with a minimum of 2 and maximum of 3 instances
+![img.png](assets/concurrency-endpoint-autoscaling1.png)
+
+Also, we want to spin up instances when there are 5 or more simultaneous requests 
+(Typo: Screenshot shows 2 as target value but the final config was actually 5)
+![img.png](assets/concurrency-endpoint-autoscaling2.png)
+
+Summarizing, we chose autoscaling of minimum 2 and maximum 3 instances for both lambda and endpoint.
+This is because due to our synchronous design, we can expect a 1-1 correspondence here. 1 lambda will derive the request to 1 endpoint.  
+
+However, if we had an async design, we could have many more lambdas to attend the requests, queue them and then have less endpoints
+to make the inferences as they get free.
+
+
+
 
