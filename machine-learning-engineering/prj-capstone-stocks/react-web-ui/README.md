@@ -1,6 +1,7 @@
 ![Continuous Integration](https://github.com/aws-samples/react-cors-spa/actions/workflows/ci.yml/badge.svg)
 
-# Getting Started with the React Cors Application
+# React Web UI for Stock Prediction
+This has been created from https://github.com/aws-samples/react-cors-spa 
 
 ## Getting started
 
