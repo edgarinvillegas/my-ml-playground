@@ -22,9 +22,8 @@ function Chart() {
 
     // append the svg object to the body of the page
     //const svg = d3.select("body").append("svg")
-    const g = d3.select("svg").append("g")
-    console.log('svg?: ', g)
-    g.attr("transform", `translate(${margin.left}, ${margin.top})`)
+    //const g = d3.select("svg").append("g")
+    const g = d3.select("svg g")
 
     // add X axis and Y axis
     const x = d3.scaleTime().range([0, width]);
@@ -71,10 +70,12 @@ function Chart() {
   }, []);
 
   return (
+      // g.attr("transform", `translate(${margin.left}, ${margin.top})`)
     <svg
         width={width + margin.left + margin.right}
         height={height + margin.top + margin.bottom}
     >
+      <g transform={`translate(${margin.left}, ${margin.top})`} />
     </svg>
   );
 }
