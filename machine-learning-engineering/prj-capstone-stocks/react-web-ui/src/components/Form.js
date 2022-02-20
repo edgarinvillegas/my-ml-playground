@@ -37,7 +37,7 @@ function Form() {
                     <label htmlFor="ticker">Ticker</label>
                     <select className="custom-select d-block w-100" id="ticker" required="true">
                       {Object.entries(tickers).map(([key, text]) => (
-                          <option value={key}>{key} - {text}</option>
+                          <option key={key} value={key}>{key} - {text}</option>
                       ))}
                     </select>
                   </div>
@@ -52,7 +52,7 @@ function Form() {
                 <div className="col-md-3">
                   <div className="mb-3"><label htmlFor="lookback">Lookback <span
                       className="text-muted">(Months)</span></label>
-                    <input type="number" step="1" value="1" min="1" max="120" className="form-control" id="lookback"
+                    <input type="number" step="1" value="3" min="1" max="120" className="form-control" id="lookback"
                            placeholder="Months to look back" />
                   </div>
                 </div>

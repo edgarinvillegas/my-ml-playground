@@ -12,6 +12,7 @@ function Chart() {
     data.forEach((d) => {
       d.date = parseTime(d.date);
       d.value = +d.value;
+      d.value2 = +d.value * 0.8
     });
     console.log(data)
 
@@ -21,7 +22,8 @@ function Chart() {
     height = 500 - margin.top - margin.bottom;
 
     // append the svg object to the body of the page
-    const svg = d3.select("body").append("svg")
+    //const svg = d3.select("body").append("svg")
+    const svg = d3.select("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
@@ -45,7 +47,7 @@ function Chart() {
     const valueLine = d3.line()
     .x((d) => { return x(d.date); })
     .y((d) => { return y(d.value); });
-  
+
     svg.append("path")
       .data([data])
       .attr("class", "line")
@@ -54,6 +56,17 @@ function Chart() {
       .attr("stroke-width", 1.5)
       .attr("d", valueLine);
 
+    const valueLine2 = d3.line()
+    .x((d) => { return x(d.date); })
+    .y((d) => { return y(d.value2); });
+
+    svg.append("path")
+      .data([data])
+      .attr("class", "line")
+      .attr("fill", "none")
+      .attr("stroke", "red")
+      .attr("stroke-width", 1.5)
+      .attr("d", valueLine2);
   }
 
   useEffect(() => {
@@ -61,9 +74,9 @@ function Chart() {
   }, []);
 
   return (
-    <>
+    <svg>
 
-    </>
+    </svg>
   );
 }
 
