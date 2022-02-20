@@ -19,14 +19,16 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 import logo from './logo.svg';
 import logoS3 from './logoS3.png';
 import logoCF from './logoCloudFront.png';
-import './App.css';
+// import './App.css';
 import { useFetch } from "react-async"
+
+import Main from './components/Main'
 
 // To be replaced by the endpoint of the API deployed through the CloudFormation Template
 //const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/hello'
 const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
 
-function App() {
+function OldApp() {
   return (
     <div className="App">
         <header className="App-header">
@@ -41,6 +43,11 @@ function App() {
     </div>
   );
 }
+
+function App() {
+  return <Main />;
+}
+
 
 const APIResult = () => {
   const { data, error } = useFetch(APIEndPoint, {
