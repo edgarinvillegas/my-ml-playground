@@ -111,8 +111,9 @@ if __name__ == '__main__':
     training_dir = args.train
     train_file = args.filename
     test_file = train_file.replace('train', 'test', 1)
-    dataset_name = train_file.split('_')[0]
-    print(dataset_name)
+    # dataset_name = train_file.split('_')[0]
+    dataset_name = 'results'
+    #print(dataset_name)
 
     test_data = task.Dataset(file_path=os.path.join(training_dir, test_file))
     u = urlparse(args.s3_output, allow_fragments=False)
