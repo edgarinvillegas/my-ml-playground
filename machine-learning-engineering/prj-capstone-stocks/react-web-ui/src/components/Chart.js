@@ -22,7 +22,9 @@ function Chart() {
 
     // append the svg object to the body of the page
     //const svg = d3.select("body").append("svg")
-    const svg = d3.select("svg")
+    const g = d3.select("svg").append("g")
+    console.log('svg?: ', g)
+    g.attr("transform", `translate(${margin.left}, ${margin.top})`)
 
     // add X axis and Y axis
     const x = d3.scaleTime().range([0, width]);
@@ -30,12 +32,12 @@ function Chart() {
 
     x.domain(d3.extent(data, (d) => { return d.date; }));
     y.domain([0, d3.max(data, (d) => { return d.value; })]);
-  
-    svg.append("g")
+
+    g.append("g")
       .attr("transform", `translate(0, ${height})`)
       .call(d3.axisBottom(x));
 
-    svg.append("g")
+    g.append("g")
       .call(d3.axisLeft(y));
       
     // add the Line
@@ -43,7 +45,7 @@ function Chart() {
     .x((d) => { return x(d.date); })
     .y((d) => { return y(d.value); });
 
-    svg.append("path")
+    g.append("path")
       .data([data])
       .attr("class", "line")
       .attr("fill", "none")
@@ -55,7 +57,7 @@ function Chart() {
     .x((d) => { return x(d.date); })
     .y((d) => { return y(d.value2); });
 
-    svg.append("path")
+    g.append("path")
       .data([data])
       .attr("class", "line")
       .attr("fill", "none")
@@ -73,7 +75,6 @@ function Chart() {
         width={width + margin.left + margin.right}
         height={height + margin.top + margin.bottom}
     >
-      <g transform={`translate(${margin.left}, ${margin.top})`}></g>
     </svg>
   );
 }

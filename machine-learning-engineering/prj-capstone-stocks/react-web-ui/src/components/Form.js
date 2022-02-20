@@ -35,7 +35,7 @@ function Form() {
                 <div className="col-md-6">
                   <div className="mb-3">
                     <label htmlFor="ticker">Ticker</label>
-                    <select className="custom-select d-block w-100" id="ticker" required="true">
+                    <select className="custom-select d-block w-100" id="ticker" required={true}>
                       {Object.entries(tickers).map(([key, text]) => (
                           <option key={key} value={key}>{key} - {text}</option>
                       ))}
