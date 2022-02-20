@@ -27,35 +27,49 @@
     </div>
   </div>
   <div class="">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-7 order-md-2" style="">
-          <h4 class="d-flex justify-content-between mb-3"> <span class="text-muted"><b>Chart</b></span>
-<!--              <span class="badge badge-secondary badge-pill">3</span> -->
-          </h4>
-          <div class="card p-2 my-4">
-              <span>chart</span>
-          </div>
-        </div>
-        <div class="col-md-4 order-md-1" style="">
-          <h4 class="mb-3"><b>User params</b></h4>
-          <form class="needs-validation" novalidate="">
-            <div class="mb-3"> <label for="ticker">Ticker <!--<span class="text-muted">(Optional)</span>--></label>
-<!--              <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">-->
+    <form class="needs-validation" novalidate="">
+        <div class="container">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3"> <label for="ticker">Ticker
+                  <!--<span class="text-muted">(Optional)</span>--></label>
+                <!--              <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">-->
                 <select class="custom-select d-block w-100" id="ticker" required="true">
                   <option value="AAPL">AAPL - Apple</option>
                   <option value="GLD">GLD - Gold</option>
                 </select>
+              </div>
             </div>
-            <div class="mb-3"> <label for="forecast">Forecast <span class="text-muted">(Months)</span></label>
-              <input type="number" step="1" value="1" min="1" max="12" class="form-control" id="forecast" placeholder="Months to predict">
+            <div class="col-md-3">
+              <div class="mb-3"> <label for="forecast">Forecast <span class="text-muted">(Months)</span></label>
+                <input type="number" step="1" value="1" min="1" max="12" class="form-control" id="forecast" placeholder="Months to predict">
+              </div>
             </div>
-            <div class="mb-3"> <label for="lookback">Lookback <span class="text-muted">(Months)</span></label>
-              <input type="number" step="1" value="3" min="1" max="120" class="form-control" id="lookback" placeholder="Months to look back">
+            <div class="col-md-3">
+              <div class="mb-3"> <label for="lookback">Lookback <span class="text-muted">(Months)</span></label>
+                <input type="number" step="1" value="1" min="1" max="120" class="form-control" id="lookback" placeholder="Months to look back">
+              </div>
             </div>
-            <hr class="mb-4">
-            <button class="btn btn-primary btn-lg btn-block" type="submit">Backtest forecast</button>
-          </form>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+<!--                <hr class="mb-4">-->
+                <button class="btn btn-primary btn-lg btn-block" type="submit">Backtest forecast</button>
+            </div>
+          </div>
+        </div>
+    </form>
+  </div>
+  <div class="py-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12 order-md-2">
+          <h4 class="d-flex justify-content-between mb-3"> <span class="text-muted"><b>Results</b></span>
+            <!--              <span class="badge badge-secondary badge-pill">3</span> -->
+          </h4>
+          <div class="card p-2 my-4">
+            <span>chart</span>
+          </div>
         </div>
       </div>
     </div>
@@ -80,10 +94,10 @@
       </div>
     </div>
   </div>
-<!--  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>-->
-<!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>-->
-<!--  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>-->
-<!--  <script src="assets/js/validation.js"></script>-->
+  <!--  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>-->
+  <!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>-->
+  <!--  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>-->
+  <!--  <script src="assets/js/validation.js"></script>-->
 </body>
 
 </html>
