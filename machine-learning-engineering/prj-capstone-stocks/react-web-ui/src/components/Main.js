@@ -1,5 +1,6 @@
 import './Main.css';
 import Form from './Form';
+import Chart from './Chart'
 
 function Main() {
   return (
@@ -26,7 +27,7 @@ function Main() {
                     <span className="text-muted"><b>Results</b></span>
                 </h4>
                 <div className="card p-2 my-4">
-                  <span>chart</span>
+                  <Chart />
                 </div>
               </div>
             </div>
