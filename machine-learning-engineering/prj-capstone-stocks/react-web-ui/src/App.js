@@ -23,7 +23,8 @@ import './App.css';
 import { useFetch } from "react-async"
 
 // To be replaced by the endpoint of the API deployed through the CloudFormation Template
-const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/hello'
+//const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/hello'
+const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
 
 function App() {
   return (
@@ -46,7 +47,7 @@ const APIResult = () => {
     headers: { accept: "application/json" },
   })
   if (error) return <p>{error.message}</p>
-  if (data) return <p>{data.message}</p>
+  if (data) return <p>{JSON.stringify(data)}</p>
   return null
 }
 
