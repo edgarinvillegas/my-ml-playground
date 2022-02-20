@@ -9,7 +9,7 @@ function Main() {
               <div className="text-center col-md-7 mx-auto">
                 <i className="fa d-block fa-bullseye fa-5x mb-4 text-info" />
                 <h2><b>Predict stock prices with AutoGluon</b></h2>
-                <p className="lead">Predict and backtest stock prices (data comes live from Yahoo Finance)</p>
+                <p className="lead">Capstone Project to predict and backtest stock prices (data comes live from Yahoo Finance)</p>
               </div>
             </div>
           </div>
