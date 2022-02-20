@@ -1,8 +1,26 @@
+import { useEffect, useState } from 'react';
 import './Main.css';
 import Form from './Form';
 import Chart from './Chart'
+import * as d3 from "d3";
 
 function Main() {
+  const [data, setData] = useState(null)
+
+  async function loadData() {
+      // read data from csv and format variables
+    const tmpData = await d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv')
+    setData(tmpData)
+    setTimeout(() => {
+        console.log('Setting data again...')
+        // setData(JSON.parse(JSON.stringify(tmpData)))
+        setData([...tmpData, {
+            date: '2022-02-20',
+            value: '9999.99'
+        }])
+    }, 10000)
+  }
+  useEffect(loadData, [])
   return (
       <div className="bg-light">
         <div className="py-5">
@@ -27,7 +45,7 @@ function Main() {
                     <span className="text-muted"><b>Results</b></span>
                 </h4>
                 <div className="card p-2 my-4">
-                  <Chart />
+                    {!!data && <Chart key={JSON.stringify(data)} data={data}/>}
                 </div>
               </div>
             </div>

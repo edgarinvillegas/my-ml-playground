@@ -1,28 +1,23 @@
 import React, { useEffect } from "react";
 import * as d3 from "d3";
 
-function Chart() {
+function Chart({ data }) {
   // set the dimensions and margins of the graph
   const margin = { top: 20, right: 20, bottom: 50, left: 70 };
   const width = 960 - margin.left - margin.right;
   const height = 500 - margin.top - margin.bottom;
 
   const createGraph = async () => {
-
-    // read data from csv and format variables
-    let data = await d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv')
     const parseTime = d3.timeParse("%Y-%m-%d");
-    console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
-    data.forEach((d) => {
-      d.date = parseTime(d.date);
-      d.value = +d.value;
-      d.value2 = +d.value * 0.8
-    });
+    // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
+    data = data.map((d) => ({
+      date: parseTime(d.date),
+      value: +d.value,
+      value2: +d.value * 0.8
+    }));
     // console.log(data)
 
     // append the svg object to the body of the page
-    //const svg = d3.select("body").append("svg")
-    //const g = d3.select("svg").append("g")
     const g = d3.select("svg g")
 
     // add X axis and Y axis
@@ -70,7 +65,6 @@ function Chart() {
   }, []);
 
   return (
-      // g.attr("transform", `translate(${margin.left}, ${margin.top})`)
     <svg
         width={width + margin.left + margin.right}
         height={height + margin.top + margin.bottom}
