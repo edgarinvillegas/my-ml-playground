@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- PAGE settings -->
+  <link rel="icon" href="https://templates.pingendo.com/assets/Pingendo_favicon.ico">
+  <title>Checkout</title>
+  <meta name="description" content="Wireframe design of a checkout form by Pingendo">
+  <meta name="keywords" content="Pingendo bootstrap example template wireframe checkout form">
+  <meta name="author" content="Pingendo">
+  <!-- CSS dependencies -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" type="text/css">
+  <link rel="stylesheet" href="wireframe.css">
+</head>
+
+<body class="bg-light">
+  <div class="py-5">
+    <div class="container">
+      <div class="row">
+        <div class="text-center col-md-7 mx-auto"> <i class="fa d-block fa-bullseye fa-5x mb-4 text-info"></i>
+          <h2><b>Predict stock prices with AutoGluon</b></h2>
+          <p class="lead">Predict and backtest stock prices (data comes live from Yahoo Finance)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-7 order-md-2" style="">
+          <h4 class="d-flex justify-content-between mb-3"> <span class="text-muted"><b>Chart</b></span>
+<!--              <span class="badge badge-secondary badge-pill">3</span> -->
+          </h4>
+          <div class="card p-2 my-4">
+              <span>chart</span>
+          </div>
+        </div>
+        <div class="col-md-4 order-md-1" style="">
+          <h4 class="mb-3"><b>User params</b></h4>
+          <form class="needs-validation" novalidate="">
+            <div class="mb-3"> <label for="ticker">Ticker <!--<span class="text-muted">(Optional)</span>--></label>
+<!--              <input type="text" class="form-control" id="address2" placeholder="Apartment or suite">-->
+                <select class="custom-select d-block w-100" id="ticker" required="true">
+                  <option value="AAPL">AAPL - Apple</option>
+                  <option value="GLD">GLD - Gold</option>
+                </select>
+            </div>
+            <div class="mb-3"> <label for="forecast">Forecast <span class="text-muted">(Months)</span></label>
+              <input type="number" step="1" value="1" min="1" max="12" class="form-control" id="forecast" placeholder="Months to predict">
+            </div>
+            <div class="mb-3"> <label for="lookback">Lookback <span class="text-muted">(Months)</span></label>
+              <input type="number" step="1" value="3" min="1" max="120" class="form-control" id="lookback" placeholder="Months to look back">
+            </div>
+            <hr class="mb-4">
+            <button class="btn btn-primary btn-lg btn-block" type="submit">Backtest forecast</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="py-5 text-muted text-center">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12 my-4">
+          <p class="mb-1">© 2022 Edgar Villegas</p>
+          <!--<ul class="list-inline">
+            <li class="list-inline-item">
+              <a href="#">Privacy</a>
+            </li>
+            <li class="list-inline-item">
+              <a href="#">Terms</a>
+            </li>
+            <li class="list-inline-item">
+              <a href="#">Support</a>
+            </li>
+          </ul>-->
+        </div>
+      </div>
+    </div>
+  </div>
+<!--  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>-->
+<!--  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>-->
+<!--  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>-->
+<!--  <script src="assets/js/validation.js"></script>-->
+</body>
+
+</html>
