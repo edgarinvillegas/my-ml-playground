@@ -4,6 +4,7 @@ import Form from './Form';
 import Chart from './Chart'
 import csvtojson from 'csvtojson'
 import { useFetch } from "react-async"
+import * as d3 from "d3";
 
 const useStockFetch = (api, method='GET') => {
     const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
