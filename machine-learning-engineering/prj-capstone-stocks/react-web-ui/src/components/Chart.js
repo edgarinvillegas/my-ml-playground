@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import * as d3 from "d3";
 
+const toOptNum = num => num === null || num === undefined ? num : +num
+
 function Chart({ seriesData }) {
   // set the dimensions and margins of the graph
   const margin = { top: 20, right: 20, bottom: 50, left: 70 };
@@ -11,8 +13,8 @@ function Chart({ seriesData }) {
   // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
   const data = seriesData.map((sd) => ({
     date: parseTime(sd.date),
-    value: +sd.value,
-    value2: +sd.value2
+    value: toOptNum(sd.value),
+    value2: toOptNum(sd.value2)
   }));
   // console.log(data)
 

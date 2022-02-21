@@ -37,10 +37,28 @@ function Main() {
       setTestData(testData)
       const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
       setTrainData(trainData)
-      // console.log('testData', testData)
-      // ---------------------------------
       startPollingResults(getDataResponse.trainingJobName)
   }
+
+  const MOCK_submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
+      console.log(ticker, forecastMonths, lookbackMonths)
+      const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
+      setTrainingJobName(getDataResponse.trainingJobName);
+      // console.log(getDataResponse)
+      const testData = await csvtojson().fromString(getDataResponse.testCsv)
+      setTestData(testData)
+      const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
+      setTrainData(trainData)
+      MOCK_startPollingResults(getDataResponse.trainingJobName)
+  }
+
+  const MOCK_startPollingResults = async (trainingJobName) => {
+      await delay$(5000)
+      const readResultsResponse = await apiFetch$('read-results?trainingJobName=GLD-f2-b6-2022-02-20-23-48-23-279316');
+      onResultsReady(readResultsResponse)
+  }
+
+
   const delay$ = (delay) => {
       return new Promise((res, rej) => setTimeout(res, delay))
   };
@@ -61,11 +79,6 @@ function Main() {
       onResultsReady(readResultsResponse)
   }
 
-  const MOCK_startPollingResults = async (trainingJobName) => {
-      const readResultsResponse = await apiFetch$('read-results?trainingJobName=GLD-f2-b6-2022-02-20-23-48-23-279316');
-      onResultsReady(readResultsResponse)
-  }
-
   const onResultsReady = async (inferenceResults) => {
       const predictions = await csvtojson().fromString(inferenceResults.predictions)
       setPredictions(predictions)
@@ -78,10 +91,16 @@ function Main() {
   // Quick fix for data mismatch
   if(predictions && testData && predictions.length !== testData.length) predictions.length = testData.length = Math.min(predictions.length, testData.length)
 
-  const mergedPredictions = predictions && testData ? predictions.map((pred, i) => ({
+  /*const mergedPredictions = predictions && testData ? predictions.map((pred, i) => ({
       date: testData[i].Date,
       value: pred.Predicted,
       value2: pred.True,
+  })): null
+   */
+  const mergedPredictions = testData ? testData.map((t, i) => ({
+      date: t.Date,
+      value: t.Adj_Close,
+      value2: predictions && predictions[i] ? predictions[i].Predicted : null,
   })): null
 
   console.log('mergedPredictions', mergedPredictions)
@@ -89,9 +108,9 @@ function Main() {
   // useEffect(loadData, [])
   return (
       <div className="bg-light">
-        <Header />
+        {/*<Header />*/}
         <div className="">
-          <Form onSubmit={submitHandler} />
+          <Form onSubmit={MOCK_submitHandler} />
         </div>
         <div className="py-5">
           <div className="container">
