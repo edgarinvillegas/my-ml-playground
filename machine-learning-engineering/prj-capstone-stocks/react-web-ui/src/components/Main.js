@@ -64,12 +64,7 @@ function Main() {
           <div className="container">
             <div className="row">
               <div className="col-md-12 order-md-2">
-                <h4 className="d-flex justify-content-between mb-3">
-                    <span className="text-muted"><b>Results</b></span>
-                </h4>
-                <div className="card p-2 my-4">
-                    {!!data && <Chart key={data} data={data}/>}
-                </div>
+                <Results data={data} />
               </div>
             </div>
           </div>
@@ -77,6 +72,19 @@ function Main() {
         <Footer />
       </div>
   );
+}
+
+function Results({ data }) {
+    return (
+        <>
+            <h4 className="d-flex justify-content-between mb-3">
+                    <span className="text-muted"><b>Results</b></span>
+            </h4>
+            <div className="card p-2 my-4">
+                {!!data && <Chart key={data} data={data}/>}
+            </div>
+        </>
+    )
 }
 
 export default Main;

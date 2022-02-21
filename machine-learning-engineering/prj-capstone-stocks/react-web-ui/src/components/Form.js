@@ -40,11 +40,6 @@ function Form({ onSubmit }) {
     const forecastChangeHandler = event => setForecastMonths(event.target.value)
     const lookbackChangeHandler = event => setLookbackMonths(event.target.value)
 
-
-    const changeHandler = event => {
-      const value = event.target.value
-      console.log(value)
-    }
     return (
         <form className="needs-validation" noValidate="">
             <div className="container">
