@@ -2,12 +2,14 @@ import React, { useEffect } from "react";
 import * as d3 from "d3";
 
 const toOptNum = num => num === null || num === undefined ? num : +num
+const withValues = (arr) => arr.filter(x => x !== null && x !== undefined)
 
 function Chart({ seriesData }) {
   // set the dimensions and margins of the graph
   const margin = { top: 20, right: 20, bottom: 50, left: 70 };
-  const width = 960 - margin.left - margin.right;
-  const height = 500 - margin.top - margin.bottom;
+  // const width = 960 - margin.left - margin.right;
+  // const height = 500 - margin.top - margin.bottom;
+  const [width, height] = [600, 400]
 
   const parseTime = d3.timeParse("%Y-%m-%d");
   // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
@@ -30,10 +32,17 @@ function Chart({ seriesData }) {
     x.domain(d3.extent(data, (d) => { return d.date; }));
     // y.domain([0, d3.max(data, (d) => { return d.value; })]);
     // y.domain(d3.extent(data, d => d.value));
-    y.domain([
-        d3.min(data, d => Math.min(d.value, d.value2)),
-        d3.max(data, d => Math.max(d.value, d.value2))
-    ]);
+    // y.domain([
+    //     d3.min(data, d => Math.min(d.value, d.value2)),
+    //     d3.max(data, d => Math.max(d.value, d.value2))
+    // ]);
+    y.domain(d3.extent(
+        withValues([
+            ...data.map(d => d.value),
+            ...data.map(d => d.value2)
+        ]),
+        x => x)
+    );
 
     g.append("g")
       .attr("transform", `translate(0, ${height})`)
@@ -66,6 +75,18 @@ function Chart({ seriesData }) {
       .attr("stroke", "red")
       .attr("stroke-width", 1.5)
       .attr("d", valueLine2);
+
+    const valueLine3 = d3.line()
+    .x((d) => { return x(d.date); })
+    .y((d) => { return y(d.value3); });
+
+    g.append("path")
+      .data([data])
+      .attr("class", "line")
+      .attr("fill", "none")
+      .attr("stroke", "green")
+      .attr("stroke-width", 1.5)
+      .attr("d", valueLine3);
   }, []);
 
   return (

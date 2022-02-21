@@ -108,7 +108,7 @@ function Main() {
   // useEffect(loadData, [])
   return (
       <div className="bg-light">
-        {/*<Header />*/}
+        <Header />
         <div className="">
           <Form onSubmit={MOCK_submitHandler} />
         </div>
