@@ -1,3 +1,4 @@
+import { useState } from 'react'
 
 const tickers = {
   'AAL': 'American Airlines Group Inc.',
@@ -27,7 +28,23 @@ const tickers = {
   'T': 'AT&T Inc.',
 };
 
-function Form() {
+function Form({ onSubmit }) {
+    const [ticker, setTicker] = useState('AAL')
+    const [ forecastMonths, setForecastMonths ] = useState(1)
+    const [ lookbackMonths, setLookbackMonths ] = useState(3)
+
+    const submitHandler = () => {
+      onSubmit({ ticker, forecastMonths, lookbackMonths })
+    }
+    const tickerChangeHandler = event => setTicker(event.target.value)
+    const forecastChangeHandler = event => setForecastMonths(event.target.value)
+    const lookbackChangeHandler = event => setLookbackMonths(event.target.value)
+
+
+    const changeHandler = event => {
+      const value = event.target.value
+      console.log(value)
+    }
     return (
         <form className="needs-validation" noValidate="">
             <div className="container">
@@ -35,7 +52,7 @@ function Form() {
                 <div className="col-md-6">
                   <div className="mb-3">
                     <label htmlFor="ticker">Ticker</label>
-                    <select className="custom-select d-block w-100" id="ticker" required={true}>
+                    <select className="custom-select d-block w-100" id="ticker" required={true} value={ticker} onChange={tickerChangeHandler}>
                       {Object.entries(tickers).map(([key, text]) => (
                           <option key={key} value={key}>{key} - {text}</option>
                       ))}
@@ -45,21 +62,21 @@ function Form() {
                 <div className="col-md-3">
                   <div className="mb-3"><label htmlFor="forecast">Forecast <span
                       className="text-muted">(Months)</span></label>
-                    <input type="number" step="1" value="1" min="1" max="12" className="form-control" id="forecast"
-                           placeholder="Months to predict" />
+                    <input type="number" step="1" value={forecastMonths} min="1" max="12" className="form-control" id="forecast"
+                           placeholder="Months to predict" onChange={forecastChangeHandler} />
                   </div>
                 </div>
                 <div className="col-md-3">
                   <div className="mb-3"><label htmlFor="lookback">Lookback <span
                       className="text-muted">(Months)</span></label>
-                    <input type="number" step="1" value="3" min="1" max="120" className="form-control" id="lookback"
-                           placeholder="Months to look back" />
+                    <input type="number" step="1" value={lookbackMonths} min="1" max="120" className="form-control" id="lookback"
+                           placeholder="Months to look back" onChange={lookbackChangeHandler} />
                   </div>
                 </div>
               </div>
               <div className="row">
                 <div className="col-md-12">
-                  <button className="btn btn-primary btn-lg btn-block" type="submit">Backtest forecast</button>
+                  <button className="btn btn-primary btn-lg btn-block" type="button" onClick={submitHandler}>Backtest forecast</button>
                 </div>
               </div>
             </div>

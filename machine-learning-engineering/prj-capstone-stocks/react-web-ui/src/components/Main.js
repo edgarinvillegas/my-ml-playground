@@ -20,6 +20,10 @@ function Main() {
         }])
     }, 10000)
   }
+  const submitHandler = ({ ticker, forecastMonths, lookbackMonths }) => {
+      console.log(ticker, forecastMonths, lookbackMonths)
+  }
+
   useEffect(loadData, [])
   return (
       <div className="bg-light">
@@ -35,7 +39,7 @@ function Main() {
           </div>
         </div>
         <div className="">
-          <Form />
+          <Form onSubmit={submitHandler} />
         </div>
         <div className="py-5">
           <div className="container">
