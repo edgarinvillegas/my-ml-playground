@@ -3,32 +3,8 @@ import './Main.css';
 import Form from './Form';
 import Chart from './Chart'
 import csvtojson from 'csvtojson'
-import { useFetch } from "react-async"
 import * as d3 from "d3";
-
-const useStockFetch = (api, method='GET') => {
-    const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
-    return useFetch(`${baseApiEndpoint}/${api}`, {
-        headers: { accept: "application/json" },
-        method
-    })
-};
-/*
-const APIResult = () => {
-  const { data, error } = useStockFetch('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'post')
-  if (error) return <p>{error.message}</p>
-  if (data) return <p>{JSON.stringify(data)}</p>
-  return null
-}*/
-
-const apiFetch$ = async (api, method='GET') => {
-    const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
-    const rawResponse = await fetch(`${baseApiEndpoint}/${api}`, {
-        method,
-        headers: { 'Accept': 'application/json' }
-    });
-    return await rawResponse.json();
-}
+import { useStockFetch, apiFetch$ } from '../utils'
 
 function Header() {
     return (
