@@ -29,7 +29,8 @@ function Main() {
   const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
       //const obj = await csv().fromString(csvStr)
-      const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
+      // const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=0', 'POST');
+      const getDataResponse = await apiFetch$(`get-data?ticker=${ticker}&forecastMonths=${forecastMonths}&lookbackMonths=${lookbackMonths}&skipUpload=0`, 'POST');
       setTrainingJobName(getDataResponse.trainingJobName);
       // console.log(getDataResponse)
       const testData = await csvtojson().fromString(getDataResponse.testCsv)
@@ -38,9 +39,29 @@ function Main() {
       setTrainData(trainData)
       // console.log('testData', testData)
       // ---------------------------------
-      startPollingResults(trainingJobName)
+      startPollingResults(getDataResponse.trainingJobName)
   }
+  const delay$ = (delay) => {
+      return new Promise((res, rej) => setTimeout(res, delay))
+  };
+
   const startPollingResults = async (trainingJobName) => {
+      let readResultsResponse = null
+      let i = 1
+      do {
+          console.log(`Attempt ${i++} of polling...`)
+          try{
+              readResultsResponse = await apiFetch$(`read-results?trainingJobName=${trainingJobName}`);
+              console.log('readResultsResponse: ', readResultsResponse)
+          } catch (exc) {
+              console.log('Error on read-results. Keep trying... ', exc)
+          }
+          await delay$(5000)
+      } while(readResultsResponse === null || readResultsResponse.error);
+      onResultsReady(readResultsResponse)
+  }
+
+  const MOCK_startPollingResults = async (trainingJobName) => {
       const readResultsResponse = await apiFetch$('read-results?trainingJobName=GLD-f2-b6-2022-02-20-23-48-23-279316');
       onResultsReady(readResultsResponse)
   }
