@@ -1,10 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import './Main.css';
 import Form from './Form';
 import Chart from './Chart'
 import csvtojson from 'csvtojson'
-import * as d3 from "d3";
-import { useStockFetch, apiFetch$ } from '../utils'
+import { apiFetch$ } from '../utils'
+
+function Main() {
+  const [data, setData] = useState(null)
+  const [testData, setTestData] = useState(null)
+  const [trainData, setTrainData] = useState(null)
+  const [trainingJobName, setTrainingJobName] = useState('')
+  const [predictions, setPredictions] = useState(null)
+
+  /*async function loadData() {
+      // read data from csv and format variables
+    const tmpData = await d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv')
+    setData(tmpData)
+    setTimeout(() => {
+        console.log('Setting data again...')
+        // setData(JSON.parse(JSON.stringify(tmpData)))
+        setData([...tmpData, {
+            date: '2022-02-20',
+            value: '9999.99'
+        }])
+    }, 10000)
+  }*/
+
+  const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
+      console.log(ticker, forecastMonths, lookbackMonths)
+      //const obj = await csv().fromString(csvStr)
+      const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
+      setTrainingJobName(getDataResponse.trainingJobName);
+      // console.log(getDataResponse)
+      const testData = await csvtojson().fromString(getDataResponse.testCsv)
+      setTestData(testData)
+      const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
+      setTrainData(trainData)
+      // console.log('testData', testData)
+      // ---------------------------------
+      startPollingResults(trainingJobName)
+  }
+  const startPollingResults = async (trainingJobName) => {
+      const readResultsResponse = await apiFetch$('read-results?trainingJobName=GLD-f2-b6-2022-02-20-23-48-23-279316');
+      onResultsReady(readResultsResponse)
+  }
+
+  const onResultsReady = async (inferenceResults) => {
+      const predictions = await csvtojson().fromString(inferenceResults.predictions)
+      setPredictions(predictions)
+      // console.log('predictions', predictions)
+  };
+
+  //console.log('testData', testData)
+  //console.log('predictions', predictions)
+
+  // Quick fix for data mismatch
+  if(predictions && testData && predictions.length !== testData.length) predictions.length = testData.length = Math.min(predictions.length, testData.length)
+
+  const mergedPredictions = predictions && testData ? predictions.map((pred, i) => ({
+      date: testData[i].Date,
+      value: pred.Predicted
+  })): null
+
+  console.log('mergedPredictions', mergedPredictions)
+
+  // useEffect(loadData, [])
+  return (
+      <div className="bg-light">
+        <Header />
+        <div className="">
+          <Form onSubmit={submitHandler} />
+        </div>
+        <div className="py-5">
+          <div className="container">
+            <div className="row">
+              <div className="col-md-12 order-md-2">
+                <Results data={mergedPredictions} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+  );
+}
+
+function Results({ data }) {
+    return (
+        <>
+            <h4 className="d-flex justify-content-between mb-3">
+                    <span className="text-muted"><b>Results</b></span>
+            </h4>
+            <div className="card p-2 my-4">
+                {!!data && <Chart key={data} data={data}/>}
+            </div>
+        </>
+    )
+}
 
 function Header() {
     return (
@@ -33,64 +125,6 @@ function Footer() {
           </div>
         </div>
     );
-}
-
-function Main() {
-  const [data, setData] = useState(null)
-
-  async function loadData() {
-      // read data from csv and format variables
-    const tmpData = await d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv')
-    setData(tmpData)
-    setTimeout(() => {
-        console.log('Setting data again...')
-        // setData(JSON.parse(JSON.stringify(tmpData)))
-        setData([...tmpData, {
-            date: '2022-02-20',
-            value: '9999.99'
-        }])
-    }, 10000)
-  }
-
-  const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
-      console.log(ticker, forecastMonths, lookbackMonths)
-      //const obj = await csv().fromString(csvStr)
-      const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
-      console.log(getDataResponse)
-  }
-
-  useEffect(loadData, [])
-  return (
-      <div className="bg-light">
-        <Header />
-        <div className="">
-          <Form onSubmit={submitHandler} />
-        </div>
-        <div className="py-5">
-          <div className="container">
-            <div className="row">
-              <div className="col-md-12 order-md-2">
-                <Results data={data} />
-              </div>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-  );
-}
-
-function Results({ data }) {
-    return (
-        <>
-            <h4 className="d-flex justify-content-between mb-3">
-                    <span className="text-muted"><b>Results</b></span>
-            </h4>
-            <div className="card p-2 my-4">
-                {!!data && <Chart key={data} data={data}/>}
-            </div>
-        </>
-    )
 }
 
 export default Main;

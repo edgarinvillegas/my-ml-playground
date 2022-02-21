@@ -20,7 +20,6 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR TH
 // import logoS3 from './logoS3.png';
 // import logoCF from './logoCloudFront.png';
 // import './App.css';
-import { useFetch } from "react-async"
 
 import Main from './components/Main'
 
