@@ -7,7 +7,7 @@ function Chart({ data }) {
   const width = 960 - margin.left - margin.right;
   const height = 500 - margin.top - margin.bottom;
 
-  const createGraph = async () => {
+  useEffect(() => {
     const parseTime = d3.timeParse("%Y-%m-%d");
     // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
     data = data.map((d) => ({
@@ -33,7 +33,7 @@ function Chart({ data }) {
 
     g.append("g")
       .call(d3.axisLeft(y));
-      
+
     // add the Line
     const valueLine = d3.line()
     .x((d) => { return x(d.date); })
@@ -58,10 +58,6 @@ function Chart({ data }) {
       .attr("stroke", "red")
       .attr("stroke-width", 1.5)
       .attr("d", valueLine2);
-  }
-
-  useEffect(() => {
-    createGraph();
   }, []);
 
   return (

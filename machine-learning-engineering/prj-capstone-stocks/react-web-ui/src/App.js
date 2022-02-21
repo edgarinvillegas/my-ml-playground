@@ -16,9 +16,9 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER I
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-import logo from './logo.svg';
-import logoS3 from './logoS3.png';
-import logoCF from './logoCloudFront.png';
+// import logo from './logo.svg';
+// import logoS3 from './logoS3.png';
+// import logoCF from './logoCloudFront.png';
 // import './App.css';
 import { useFetch } from "react-async"
 
@@ -28,6 +28,7 @@ import Main from './components/Main'
 //const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/hello'
 const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
 
+/*
 function OldApp() {
   return (
     <div className="App">
@@ -43,6 +44,7 @@ function OldApp() {
     </div>
   );
 }
+*/
 
 function App() {
   return <Main />;
