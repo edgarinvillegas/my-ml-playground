@@ -2,7 +2,39 @@ import { useEffect, useState } from 'react';
 import './Main.css';
 import Form from './Form';
 import Chart from './Chart'
-import * as d3 from "d3";
+import csvtojson from 'csvtojson'
+import { useFetch } from "react-async"
+
+const useStockFetch = (api, method='GET') => {
+    const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
+    return useFetch(`${baseApiEndpoint}/${api}`, {
+        headers: { accept: "application/json" },
+        method
+    })
+};
+/*
+const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
+const APIResult = () => {
+  const { data, error } = useFetch(APIEndPoint, {
+    headers: { accept: "application/json" },
+  })
+  if (error) return <p>{error.message}</p>
+  if (data) return <p>{JSON.stringify(data)}</p>
+  return null
+}
+*/
+const apiFetch$ = async (api, method='GET') => {
+    const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
+    const rawResponse = await fetch(`${baseApiEndpoint}/${api}`, {
+        method,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        //body: JSON.stringify({a: 1, b: 'Textual content'})
+    });
+    return await rawResponse.json();
+}
 
 function Header() {
     return (
@@ -49,8 +81,27 @@ function Main() {
         }])
     }, 10000)
   }
-  const submitHandler = ({ ticker, forecastMonths, lookbackMonths }) => {
+  /*
+  (async () => {
+  const rawResponse = await fetch('https://httpbin.org/post', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({a: 1, b: 'Textual content'})
+  });
+  const content = await rawResponse.json();
+
+  console.log(content);
+})();
+  * */
+
+  const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
+      //const obj = await csv().fromString(csvStr)
+      const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
+      console.log(getDataResponse)
   }
 
   useEffect(loadData, [])
