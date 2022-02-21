@@ -1,21 +1,22 @@
 import React, { useEffect } from "react";
 import * as d3 from "d3";
 
-function Chart({ data }) {
+function Chart({ seriesData }) {
   // set the dimensions and margins of the graph
   const margin = { top: 20, right: 20, bottom: 50, left: 70 };
   const width = 960 - margin.left - margin.right;
   const height = 500 - margin.top - margin.bottom;
 
+  const parseTime = d3.timeParse("%Y-%m-%d");
+  // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
+  const data = seriesData.map((sd) => ({
+    date: parseTime(sd.date),
+    value: +sd.value,
+    value2: +sd.value2
+  }));
+  // console.log(data)
+
   useEffect(() => {
-    const parseTime = d3.timeParse("%Y-%m-%d");
-    // console.log('Raw data: ', JSON.parse(JSON.stringify(data)))
-    data = data.map((d) => ({
-      date: parseTime(d.date),
-      value: +d.value,
-      value2: +d.value * 0.8
-    }));
-    // console.log(data)
 
     // append the svg object to the body of the page
     const g = d3.select("svg g")
@@ -25,7 +26,12 @@ function Chart({ data }) {
     const y = d3.scaleLinear().range([height, 0]);
 
     x.domain(d3.extent(data, (d) => { return d.date; }));
-    y.domain([0, d3.max(data, (d) => { return d.value; })]);
+    // y.domain([0, d3.max(data, (d) => { return d.value; })]);
+    // y.domain(d3.extent(data, d => d.value));
+    y.domain([
+        d3.min(data, d => Math.min(d.value, d.value2)),
+        d3.max(data, d => Math.max(d.value, d.value2))
+    ]);
 
     g.append("g")
       .attr("transform", `translate(0, ${height})`)

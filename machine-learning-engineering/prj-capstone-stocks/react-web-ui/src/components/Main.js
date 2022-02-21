@@ -59,7 +59,8 @@ function Main() {
 
   const mergedPredictions = predictions && testData ? predictions.map((pred, i) => ({
       date: testData[i].Date,
-      value: pred.Predicted
+      value: pred.Predicted,
+      value2: pred.True,
   })): null
 
   console.log('mergedPredictions', mergedPredictions)
@@ -75,7 +76,7 @@ function Main() {
           <div className="container">
             <div className="row">
               <div className="col-md-12 order-md-2">
-                <Results data={mergedPredictions} />
+                  {!!mergedPredictions && <Results seriesData={mergedPredictions}/>}
               </div>
             </div>
           </div>
@@ -85,14 +86,14 @@ function Main() {
   );
 }
 
-function Results({ data }) {
+function Results({ seriesData }) {
     return (
         <>
             <h4 className="d-flex justify-content-between mb-3">
                     <span className="text-muted"><b>Results</b></span>
             </h4>
             <div className="card p-2 my-4">
-                {!!data && <Chart key={data} data={data}/>}
+                <Chart key={JSON.stringify(seriesData)} seriesData={seriesData}/>
             </div>
         </>
     )
