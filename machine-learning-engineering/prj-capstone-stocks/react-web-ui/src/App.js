@@ -24,40 +24,8 @@ import { useFetch } from "react-async"
 
 import Main from './components/Main'
 
-// To be replaced by the endpoint of the API deployed through the CloudFormation Template
-//const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/hello'
-const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
-
-/*
-function OldApp() {
-  return (
-    <div className="App">
-        <header className="App-header">
-            <APIResult />
-            <img src={logo} className="App-MainLogo" alt="logo" />
-        </header>
-        <p>This react-based application is hosted in an S3 bucket exposed through a CloudFront distribution</p>
-        <div className="logos">
-            <img src={logoS3} className="App-logoR2L" alt="logo S3" />
-            <img src={logoCF} className="App-logoL2R" alt="logo CloudFront" />
-        </div>
-    </div>
-  );
-}
-*/
-
 function App() {
   return <Main />;
-}
-
-
-const APIResult = () => {
-  const { data, error } = useFetch(APIEndPoint, {
-    headers: { accept: "application/json" },
-  })
-  if (error) return <p>{error.message}</p>
-  if (data) return <p>{JSON.stringify(data)}</p>
-  return null
 }
 
 export default App;

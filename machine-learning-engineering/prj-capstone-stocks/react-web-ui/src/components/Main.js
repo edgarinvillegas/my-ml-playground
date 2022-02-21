@@ -14,25 +14,18 @@ const useStockFetch = (api, method='GET') => {
     })
 };
 /*
-const APIEndPoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1/read-results?trainingJobName=AAPL-f10-b30-2022-02-20-04-11-13-688429'
 const APIResult = () => {
-  const { data, error } = useFetch(APIEndPoint, {
-    headers: { accept: "application/json" },
-  })
+  const { data, error } = useStockFetch('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'post')
   if (error) return <p>{error.message}</p>
   if (data) return <p>{JSON.stringify(data)}</p>
   return null
-}
-*/
+}*/
+
 const apiFetch$ = async (api, method='GET') => {
     const baseApiEndpoint = 'https://6pjyfcf6t1.execute-api.us-west-2.amazonaws.com/v1';
     const rawResponse = await fetch(`${baseApiEndpoint}/${api}`, {
         method,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        //body: JSON.stringify({a: 1, b: 'Textual content'})
+        headers: { 'Accept': 'application/json' }
     });
     return await rawResponse.json();
 }
@@ -82,21 +75,6 @@ function Main() {
         }])
     }, 10000)
   }
-  /*
-  (async () => {
-  const rawResponse = await fetch('https://httpbin.org/post', {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({a: 1, b: 'Textual content'})
-  });
-  const content = await rawResponse.json();
-
-  console.log(content);
-})();
-  * */
 
   const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
