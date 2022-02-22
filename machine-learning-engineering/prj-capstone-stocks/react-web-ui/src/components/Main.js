@@ -11,6 +11,7 @@ function Main() {
   const [trainData, setTrainData] = useState(null)
   const [trainingJobName, setTrainingJobName] = useState('')
   const [predictions, setPredictions] = useState(null)
+  const [inferenceResults, setInferenceResults] = useState(null)
 
   /*async function loadData() {
       // read data from csv and format variables
@@ -84,6 +85,7 @@ function Main() {
   const onResultsReady = async (inferenceResults) => {
       const predictions = await csvtojson().fromString(inferenceResults.predictions)
       setPredictions(predictions)
+      setInferenceResults(inferenceResults)
       // console.log('predictions', predictions)
   };
 
@@ -119,33 +121,105 @@ function Main() {
   // useEffect(loadData, [])
   return (
       <div className="bg-light">
-        {/*<Header />*/}
-        <div className="">
-          <Form onSubmit={MOCK_submitHandler} />
-        </div>
-        <div className="py-5">
-          <div className="container">
-            <div className="row">
-              <div className="col-md-12 order-md-2">
-                  {!!mergedPredictions && <Results seriesData={mergedPredictions} ticker={ticker} />}
-              </div>
-            </div>
+          {/*<Header />*/}
+          <div className="">
+              <Form onSubmit={MOCK_submitHandler}/>
           </div>
-        </div>
-        <Footer />
+          <div className="py-3">
+              {trainingJobName && <Progress
+                  testData={testData}
+                  trainingJobName={trainingJobName}
+                  predictions={predictions}
+              />}
+          </div>
+          <div className="py-3">
+              <div className="container">
+                  <div className="row">
+                      <div className="col-md-12 order-md-2">
+                          {!!mergedPredictions && (
+                              <Results
+                                  seriesData={mergedPredictions}
+                                  ticker={ticker}
+                                  inferenceResults={inferenceResults}
+                              />
+                          )}
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <Footer/>
       </div>
   );
 }
 
-function Results({ seriesData, ticker }) {
+function Progress({ testData, trainingJobName, predictions }) {
+    const isDataReady = !!testData && !!testData.length
+    const isInferenceReady = !!predictions && !!predictions.length
+    return (
+        <div className="container">
+            <div className="row">
+                <div className="col-md-12">
+                    <h4>Progress</h4>
+                    <ul className="list-group list-group-flush" style={{listStyleType: 'none'}}>
+                        {isDataReady && (
+                            <li>
+                                <i className="fa fa-check text-primary mr-2" style={{color: 'green'}}/>Data gathered
+                            </li>
+                        )}
+                        <li>
+                            {isInferenceReady ? (
+                                <>
+                                    <i className="fa fa-check text-primary mr-2"/>
+                                    Trained.
+                                </>
+                            ): 'Training... '}
+                             <span style={{ marginLeft: 10, fontStyle: 'italic'}}>(Job name: {trainingJobName})</span>
+                        </li>
+                        {isInferenceReady && (
+                            <li>
+                                <i className="fa fa-check text-primary mr-2"/> Inference results ready
+                            </li>
+                        )}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
+function Results({ seriesData, ticker, inferenceResults }) {
     return (
         <>
-            <h4 className="d-flex justify-content-between mb-3">
-                    <span className="text-muted"><b>Results</b></span>
-            </h4>
+            {/*<h4 className="d-flex justify-content-between mb-3">*/}
+            {/*        <span className="text-muted"><b>Results</b></span>*/}
+            {/*</h4>*/}
+            <h2>Results</h2>
             <div className="card p-2 my-4">
                 <Chart key={JSON.stringify(seriesData)} seriesData={seriesData} ticker={ticker}/>
             </div>
+            {!!inferenceResults && (
+                <>
+                    <div className="card p-2 my-4">
+                        <h4>Model performance</h4>
+                        <pre>
+                            {inferenceResults.model_performance}
+                        </pre>
+                    </div>
+                    {/*<div className="card p-2 my-4">*/}
+                    {/*    <h4>Models leaderboard</h4>*/}
+                    {/*    <pre>*/}
+                    {/*        {inferenceResults.leaderboard}*/}
+                    {/*    </pre>*/}
+                    {/*</div>*/}
+                    {/*<div className="card p-2 my-4">*/}
+                    {/*    <h4>Fit summary</h4>*/}
+                    {/*    <pre>*/}
+                    {/*        {inferenceResults.fit_summary}*/}
+                    {/*    </pre>*/}
+                    {/*</div>*/}
+                </>
+            )}
         </>
     )
 }
@@ -167,7 +241,7 @@ function Header() {
 }
 function Footer() {
     return (
-        <div className="py-5 text-muted text-center">
+        <div className="py-3 text-muted text-center">
           <div className="container">
             <div className="row">
               <div className="col-md-12 my-4">
