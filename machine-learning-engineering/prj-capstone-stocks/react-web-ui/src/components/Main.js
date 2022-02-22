@@ -10,7 +10,7 @@ import 'react-block-ui/style.css';
 function Main() {
   const [ticker, setTicker] = useState('')
   const [testData, setTestData] = useState(null)
-  const [trainData, setTrainData] = useState(null)
+  // const [trainData, setTrainData] = useState(null)
   const [trainingJobName, setTrainingJobName] = useState('')
   const [predictions, setPredictions] = useState(null)
   const [inferenceResults, setInferenceResults] = useState(null)
@@ -33,7 +33,7 @@ function Main() {
   const reset = () => {
       setTicker('')
       setTestData(null)
-      setTrainData(null)
+      // setTrainData(null)
       setTrainingJobName('')
       setPredictions(null)
       setInferenceResults(null)
@@ -50,8 +50,8 @@ function Main() {
       // console.log(getDataResponse)
       const testData = await csvtojson().fromString(getDataResponse.testCsv)
       setTestData(testData)
-      const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
-      setTrainData(trainData)
+      // const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
+      // setTrainData(trainData)
       startPollingResults(getDataResponse.trainingJobName)
   }
 
@@ -64,8 +64,8 @@ function Main() {
       // console.log(getDataResponse)
       const testData = await csvtojson().fromString(getDataResponse.testCsv)
       setTestData(testData)
-      const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
-      setTrainData(trainData)
+      // const trainData = await csvtojson().fromString(getDataResponse.trainCsv)
+      // setTrainData(trainData)
       MOCK_startPollingResults(getDataResponse.trainingJobName)
   }
 

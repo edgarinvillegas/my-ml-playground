@@ -31,7 +31,7 @@ const tickers = {
 function Form({ onSubmit }) {
     const [ticker, setTicker] = useState('AAL')
     const [ forecastMonths, setForecastMonths ] = useState(1)
-    const [ lookbackMonths, setLookbackMonths ] = useState(3)
+    const [ lookbackMonths, setLookbackMonths ] = useState(5)
 
     const submitHandler = () => {
       onSubmit({ ticker, forecastMonths, lookbackMonths })
@@ -57,14 +57,14 @@ function Form({ onSubmit }) {
                 <div className="col-md-3">
                   <div className="mb-3"><label htmlFor="forecast">Forecast <span
                       className="text-muted">(Months)</span></label>
-                    <input type="number" step="1" value={forecastMonths} min="1" max="12" className="form-control" id="forecast"
+                    <input type="number" step="1" value={forecastMonths} min="1" max="24" className="form-control" id="forecast"
                            placeholder="Months to predict" onChange={forecastChangeHandler} />
                   </div>
                 </div>
                 <div className="col-md-3">
                   <div className="mb-3"><label htmlFor="lookback">Lookback <span
                       className="text-muted">(Months)</span></label>
-                    <input type="number" step="1" value={lookbackMonths} min="1" max="120" className="form-control" id="lookback"
+                    <input type="number" step="1" value={lookbackMonths} min="1" max="360" className="form-control" id="lookback"
                            placeholder="Months to look back" onChange={lookbackChangeHandler} />
                   </div>
                 </div>
