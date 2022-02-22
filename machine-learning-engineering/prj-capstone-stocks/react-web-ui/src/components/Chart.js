@@ -54,7 +54,7 @@ function Chart({ seriesData, ticker }) {
     y.domain([miny - 0.5 * rangey, maxy + 0.5 * rangey ])
 
     // Chart title
-    g.append("text").attr("x", width / 2).attr("y", 0)
+    g.append("text").attr("x", width / 2 - 70).attr("y", 0)
         .text(`${ticker} prices`)
         .style("font-size", "16px")
         .style("font-weight", 'bold')

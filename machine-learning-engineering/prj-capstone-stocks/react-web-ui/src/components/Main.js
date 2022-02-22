@@ -129,9 +129,9 @@ function Main() {
   // useEffect(loadData, [])
   return (
       <div className="bg-light">
-          {/*<Header />*/}
+          <Header />
           <div className="">
-              <Form onSubmit={MOCK_submitHandler}/>
+              <Form onSubmit={submitHandler}/>
           </div>
           <div className="py-3">
               {trainingJobName && <Progress
@@ -245,7 +245,7 @@ function Header() {
               <div className="text-center col-md-7 mx-auto">
                 <i className="fa d-block fa-bullseye fa-5x mb-4 text-info" />
                 <h2><b>Predict stock prices with AutoGluon</b></h2>
-                <p className="lead">Capstone Project to predict and backtest stock prices (data comes live from Yahoo Finance)</p>
+                <p className="lead">Capstone Project to predict and backtest stock prices (with Yahoo Finance live data)</p>
               </div>
             </div>
           </div>
