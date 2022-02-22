@@ -39,15 +39,20 @@ function Chart({ seriesData, ticker }) {
     //     d3.min(data, d => Math.min(d.value, d.value2)),
     //     d3.max(data, d => Math.max(d.value, d.value2))
     // ]);
-
-    y.domain(d3.extent(
-        withValues([
-            ...data.map(d => d.value),
-            ...data.map(d => d.value2),
-            ...data.map(d => d.value3)
-        ]),
+    const allValues = withValues([
+        ...data.map(d => d.value),
+        ...data.map(d => d.value2),
+        ...data.map(d => d.value3)
+    ])
+    /*y.domain(d3.extent(
+        allValues,
         x => x)
-    );
+    );*/
+    const miny = d3.min(allValues, y => y)
+    const maxy = d3.max(allValues, y => y)
+    const rangey = maxy - miny
+    y.domain([miny - 0.5 * rangey, maxy + 0.5 * rangey ])
+
     // Chart title
     g.append("text").attr("x", width / 2).attr("y", 0)
         .text(`${ticker} prices`)
