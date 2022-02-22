@@ -93,20 +93,28 @@ function Main() {
   // Quick fix for data mismatch
   if(predictions && testData && predictions.length !== testData.length) predictions.length = testData.length = Math.min(predictions.length, testData.length)
 
-  /*const mergedPredictions = predictions && testData ? predictions.map((pred, i) => ({
-      date: testData[i].Date,
-      value: pred.Predicted,
-      value2: pred.True,
-  })): null
-   */
+  /*const movingAverage = (arr, i, n) => {
+      if(i < n) return null;
+      const nArr = arr.slice(i - n, i);
+      return nArr.reduce((a, b) => a + b, 0) / nArr.length;
+  }
+  */
+  const movingAverage = (arr, i, n) => {
+      const nArr = arr.slice(Math.max(i - n, 0), i + 1)
+      return nArr.reduce((a, b) => a + b, 0) / nArr.length || arr[0];
+  }
+
+  const daysBackForMovingAverage = 7
   const mergedPredictions = testData ? testData.map((t, i) => ({
       date: t.Date,
       value: t.Adj_Close,
       value2: predictions && predictions[i] ? predictions[i].Predicted : null,
-      value3: +t.Adj_Close * (0.995 + Math.random()*0.01)
+      // value3: +t.Adj_Close * (0.995 + Math.random()*0.01)
+      value3: movingAverage(testData.map(t => +t.Adj_Close), i, daysBackForMovingAverage)
   })): null
 
-  console.log('mergedPredictions', mergedPredictions)
+  // console.log('mergedPredictions', mergedPredictions)
+  console.log('value3s: ', mergedPredictions && mergedPredictions.map(x => x.value3))
 
   // useEffect(loadData, [])
   return (
