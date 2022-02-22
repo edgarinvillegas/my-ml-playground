@@ -4,6 +4,8 @@ import Form from './Form';
 import Chart from './Chart'
 import csvtojson from 'csvtojson'
 import { apiFetch$ } from '../utils'
+import BlockUi from 'react-block-ui';
+import 'react-block-ui/style.css';
 
 function Main() {
   const [ticker, setTicker] = useState('')
@@ -13,6 +15,7 @@ function Main() {
   const [predictions, setPredictions] = useState(null)
   const [inferenceResults, setInferenceResults] = useState(null)
 
+  const isLoading = !inferenceResults && !!trainingJobName
   /*async function loadData() {
       // read data from csv and format variables
     const tmpData = await d3.csv('https://raw.githubusercontent.com/holtzy/data_to_viz/master/Example_dataset/3_TwoNumOrdered_comma.csv')
@@ -120,7 +123,7 @@ function Main() {
       value: t.Adj_Close,
       value2: predictions && predictions[i] ? predictions[i].Predicted : null,
       // value3: +t.Adj_Close * (0.995 + Math.random()*0.01)
-      value3: movingAverage(testData.map(t => +t.Adj_Close), i, daysBackForMovingAverage)
+      value3: isLoading ? null : movingAverage(testData.map(t => +t.Adj_Close), i, daysBackForMovingAverage)
   })): null
 
   // console.log('mergedPredictions', mergedPredictions)
@@ -130,9 +133,9 @@ function Main() {
   return (
       <div className="bg-light">
           <Header />
-          <div className="">
+          <BlockUi tag="div" blocking={isLoading}>
               <Form onSubmit={submitHandler}/>
-          </div>
+          </BlockUi>
           <div className="py-3">
               {trainingJobName && <Progress
                   testData={testData}
