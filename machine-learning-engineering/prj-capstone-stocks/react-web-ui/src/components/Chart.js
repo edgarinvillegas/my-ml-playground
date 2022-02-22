@@ -39,6 +39,7 @@ function Chart({ seriesData, ticker }) {
     //     d3.min(data, d => Math.min(d.value, d.value2)),
     //     d3.max(data, d => Math.max(d.value, d.value2))
     // ]);
+
     y.domain(d3.extent(
         withValues([
             ...data.map(d => d.value),

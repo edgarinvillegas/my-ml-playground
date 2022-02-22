@@ -27,8 +27,18 @@ function Main() {
     }, 10000)
   }*/
 
+  const reset = () => {
+      setTicker('')
+      setTestData(null)
+      setTrainData(null)
+      setTrainingJobName('')
+      setPredictions(null)
+      setInferenceResults(null)
+  }
+
   const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
+      reset()
       setTicker(ticker)
       //const obj = await csv().fromString(csvStr)
       // const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=0', 'POST');
@@ -44,6 +54,7 @@ function Main() {
 
   const MOCK_submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
+      reset()
       setTicker(ticker)
       const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
       setTrainingJobName(getDataResponse.trainingJobName);
@@ -88,9 +99,6 @@ function Main() {
       setInferenceResults(inferenceResults)
       // console.log('predictions', predictions)
   };
-
-  //console.log('testData', testData)
-  //console.log('predictions', predictions)
 
   // Quick fix for data mismatch
   if(predictions && testData && predictions.length !== testData.length) predictions.length = testData.length = Math.min(predictions.length, testData.length)
@@ -176,9 +184,14 @@ function Progress({ testData, trainingJobName, predictions }) {
                              <span style={{ marginLeft: 10, fontStyle: 'italic'}}>(Job name: {trainingJobName})</span>
                         </li>
                         {isInferenceReady && (
-                            <li>
-                                <i className="fa fa-check text-primary mr-2"/> Inference results ready
-                            </li>
+                            <>
+                                <li>
+                                    <i className="fa fa-check text-primary mr-2"/>Inference
+                                </li>
+                                <li>
+                                    Done
+                                </li>
+                            </>
                         )}
                     </ul>
                 </div>
