@@ -6,7 +6,7 @@ import csvtojson from 'csvtojson'
 import { apiFetch$ } from '../utils'
 
 function Main() {
-  const [data, setData] = useState(null)
+  const [ticker, setTicker] = useState('')
   const [testData, setTestData] = useState(null)
   const [trainData, setTrainData] = useState(null)
   const [trainingJobName, setTrainingJobName] = useState('')
@@ -28,6 +28,7 @@ function Main() {
 
   const submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
+      setTicker(ticker)
       //const obj = await csv().fromString(csvStr)
       // const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=0', 'POST');
       const getDataResponse = await apiFetch$(`get-data?ticker=${ticker}&forecastMonths=${forecastMonths}&lookbackMonths=${lookbackMonths}&skipUpload=0`, 'POST');
@@ -42,6 +43,7 @@ function Main() {
 
   const MOCK_submitHandler = async ({ ticker, forecastMonths, lookbackMonths }) => {
       console.log(ticker, forecastMonths, lookbackMonths)
+      setTicker(ticker)
       const getDataResponse = await apiFetch$('get-data?ticker=GLD&forecastMonths=2&lookbackMonths=6&skipUpload=1', 'POST');
       setTrainingJobName(getDataResponse.trainingJobName);
       // console.log(getDataResponse)
@@ -101,6 +103,7 @@ function Main() {
       date: t.Date,
       value: t.Adj_Close,
       value2: predictions && predictions[i] ? predictions[i].Predicted : null,
+      value3: +t.Adj_Close * (0.995 + Math.random()*0.01)
   })): null
 
   console.log('mergedPredictions', mergedPredictions)
@@ -108,7 +111,7 @@ function Main() {
   // useEffect(loadData, [])
   return (
       <div className="bg-light">
-        <Header />
+        {/*<Header />*/}
         <div className="">
           <Form onSubmit={MOCK_submitHandler} />
         </div>
@@ -116,7 +119,7 @@ function Main() {
           <div className="container">
             <div className="row">
               <div className="col-md-12 order-md-2">
-                  {!!mergedPredictions && <Results seriesData={mergedPredictions}/>}
+                  {!!mergedPredictions && <Results seriesData={mergedPredictions} ticker={ticker} />}
               </div>
             </div>
           </div>
@@ -126,14 +129,14 @@ function Main() {
   );
 }
 
-function Results({ seriesData }) {
+function Results({ seriesData, ticker }) {
     return (
         <>
             <h4 className="d-flex justify-content-between mb-3">
                     <span className="text-muted"><b>Results</b></span>
             </h4>
             <div className="card p-2 my-4">
-                <Chart key={JSON.stringify(seriesData)} seriesData={seriesData}/>
+                <Chart key={JSON.stringify(seriesData)} seriesData={seriesData} ticker={ticker}/>
             </div>
         </>
     )
