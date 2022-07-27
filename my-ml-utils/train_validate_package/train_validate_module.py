@@ -33,7 +33,7 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
     :param epochs:
     :param metric_factories: dict with torchmetrics-like metric factories. Example: {'avg': torchmetrics.Average}
     :param stop_on_loss_increase:
-    :param use_gpu:
+    :param use_gpu: Tries to use gpu if cuda available
     :param on_epoch_end: f(model, epoch, train_loss, valid_loss, best_valid_loss, train_metrics, valid_metrics)
     :return: Best model's state_dict.
     '''
