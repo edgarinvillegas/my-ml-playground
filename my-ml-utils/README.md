@@ -9,13 +9,13 @@ Current purpose is local development
 
 ## Lib development
 
-### Install library to local environment (hot reload)
+### 1. Install library to local environment (hot reload)
 - Activate your preferred environment
 - Go to this folder (where setup.py is)
-- `pip install -e .` (setuptools develop mode)
+- `pip install -e .` (setuptools develop mode, creates symlink)
 
-### Consume the lib
-- Same steps as **Lib consumption** 
+### 2. Consume the lib
+- Same steps as **Lib consumption**, but it will install from created symlink 
 - If using jupyter, handy way to autoreload:
 ```
 %load_ext autoreload
@@ -24,6 +24,7 @@ Current purpose is local development
 
 from train_validate_package import train_validate
 ```
+- Change the code and it will automatically reload on jupyter
 
 ## Resources
 - [When to use pip install -e](https://stackoverflow.com/questions/42609943/what-is-the-use-case-for-pip-install-e)
