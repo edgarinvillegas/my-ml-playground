@@ -1,5 +1,9 @@
 import copy
 import torch
+try:    # Use tqdm if installed for a nice progress bar
+    from tqdm import tqdm
+except ImportError:  # Dummy tqdm polyfill
+    tqdm = lambda *args, **kwargs: args[0]
 
 def default_on_epoch_end(model, epoch, epoch_train_loss, epoch_valid_loss, best_valid_loss, epoch_train_metrics,
                          epoch_valid_metrics):
@@ -52,7 +56,7 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
             metric_instances[phase] = {key: Metric().to(device) for key, Metric in metric_factories.items()}
             model.train() if phase == 'train' else model.eval()  # Disables gradient computation and others
             loader = loaders[phase]
-            for features, target in loader:
+            for features, target in tqdm(loader, desc=phase):
                 features, target = features.to(device), target.to(device)
                 pred = model(features)
                 loss = criterion(pred, target)
@@ -65,6 +69,7 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
                 epoch_avg_loss[phase] += loss.item() * features.size(0)  # * To undo default loss avg
 
             epoch_avg_loss[phase] /= len(loader.sampler)  # loss per input (average, dividing sum by dataset size)
+            torch.set_grad_enabled(phase == 'valid')  # For the next loop. Just to save memory
             if phase == 'valid':  # If epoch is completed
                 if on_epoch_end:
                     # Compute metrics. computed_metrics ~= { 'train': { 'accuracy': 0.8, 'other': 0.5 }, 'valid': ... }

@@ -3,7 +3,7 @@
 Collection of my utilities. This is WIP.
 Current purpose is local development 
 
-## Lib consumption (once distributed)
+## Lib consumption (once distributed, WIP)
 - `pip install my_ml_utils_dist`
 - `from train_validate_package import train_validate` 
 
@@ -32,5 +32,5 @@ from train_validate_package import train_validate
 
 ## TODO
 - Remove `*package` and `*module` suffixes in file names
-- Move reusable files to a lib folder. Separate sample notebooks to another dir
+- Move reusable files to a separate repo. Separate sample notebooks to another dir
 - Clean and publish to pypi
