@@ -1,9 +1,11 @@
 import copy
 import torch
-try:    # Use tqdm if installed for a nice progress bar
+
+try:  # Use tqdm if installed for a nice progress bar
     from tqdm import tqdm
 except ImportError:  # Dummy tqdm polyfill
     tqdm = lambda *args, **kwargs: args[0]
+
 
 def default_on_epoch_end(model, epoch, epoch_train_loss, epoch_valid_loss, best_valid_loss, epoch_train_metrics,
                          epoch_valid_metrics):
@@ -53,22 +55,10 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
         metric_instances = {'train': None, 'valid': None}
         for phase in ['train', 'valid']:
             # Instantiate the metrics by calling their factories
-            metric_instances[phase] = {key: Metric().to(device) for key, Metric in metric_factories.items()}
-            model.train() if phase == 'train' else model.eval()  # Disables gradient computation and others
-            loader = loaders[phase]
-            for features, target in tqdm(loader, desc=phase):
-                features, target = features.to(device), target.to(device)
-                pred = model(features)
-                loss = criterion(pred, target)
-                if phase == 'train':
-                    optimizer.zero_grad()  # clear the gradients of all optimized variables
-                    loss.backward()  # backward pass: compute gradient of the loss with respect to model parameters
-                    optimizer.step()  # perform a single optimization step (parameter update)
-                # Store metric data
-                [metric_instance.update(pred, target) for metric_instance in metric_instances[phase].values()]
-                epoch_avg_loss[phase] += loss.item() * features.size(0)  # * To undo default loss avg
-
-            epoch_avg_loss[phase] /= len(loader.sampler)  # loss per input (average, dividing sum by dataset size)
+            # metric_instances[phase] = {key: Metric().to(device) for key, Metric in metric_factories.items()}
+            avg_loss, metric_instances[phase] = forward_backward_pass(model, loaders[phase], criterion, optimizer,
+                                                                      metric_factories, phase, device)
+            epoch_avg_loss[phase] += avg_loss
             torch.set_grad_enabled(phase == 'valid')  # For the next loop. Just to save memory
             if phase == 'valid':  # If epoch is completed
                 if on_epoch_end:
@@ -86,3 +76,54 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
                     return best_model_state
 
     return best_model_state
+
+
+def forward_backward_pass(model, loader, criterion, optimizer, metric_factories, phase, device):
+    '''
+    @private
+    :param model:
+    :param loader:
+    :param criterion:
+    :param optimizer:
+    :param metric_factories: dict with torchmetrics-like metric factories. Example: {'avg': torchmetrics.Average}
+    :param phase: If 'train', it will perform backpropagation.
+    :param device:
+    :return: The pass avg_loss and the metric_instances (uncomputed)
+    '''
+    metric_instances = {key: Metric().to(device) for key, Metric in metric_factories.items()}
+    model.train() if phase == 'train' else model.eval()  # Disables gradient computation and others
+    avg_loss = 0
+    for features, target in tqdm(loader, desc=phase):
+        features, target = features.to(device), target.to(device)
+        pred = model(features)
+        loss = criterion(pred, target)
+        if phase == 'train':
+            optimizer.zero_grad()  # clear the gradients of all optimized variables
+            loss.backward()  # backward pass: compute gradient of the loss with respect to model parameters
+            optimizer.step()  # perform a single optimization step (parameter update)
+        # Store metric data
+        [metric.update(pred, target) for metric in metric_instances.values()]
+        avg_loss += loss.item() * features.size(0)  # * To undo default loss avg
+    avg_loss /= len(loader.sampler)  # loss per input (average, dividing sum by dataset size)
+    return avg_loss, metric_instances
+
+
+def test(model, loader, criterion, optimizer, metric_factories={}, use_gpu=True):
+    '''
+    Performs a forward pass. Intended for user consumption
+    :param model:
+    :param loader:
+    :param criterion:
+    :param optimizer:
+    :param metric_factories: dict with torchmetrics-like metric factories. Example: {'avg': torchmetrics.Average}
+    :param device: None to autodetect gpu
+    :return: The avg_loss and the computed metrics
+    '''
+    device = 'cuda' if use_gpu and torch.cuda.is_available() else 'cpu'
+    model.to(device)
+    with torch.no_grad():
+        avg_loss, metric_instances = forward_backward_pass(model, loader, criterion, optimizer, metric_factories,
+                                                       phase='test', device=device)
+
+    computed_metrics = {key: metric_instance.compute().item() for key, metric_instance in metric_instances.items()}
+    return avg_loss, computed_metrics
