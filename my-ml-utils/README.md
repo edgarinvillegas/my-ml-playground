@@ -5,7 +5,7 @@ Current purpose is local development
 
 ## Lib consumption (once distributed, WIP)
 - `pip install my_ml_utils_dist`
-- `from train_validate_package import train_validate` 
+- `from train_validate_test_package import train_validate, test` 
 
 ## Lib development
 
@@ -22,7 +22,7 @@ Current purpose is local development
 %autoreload 1
 %aimport train_validate_package
 
-from train_validate_package import train_validate
+from train_validate_package import train_validate, test
 ```
 - Change the code and it will automatically reload on jupyter
 

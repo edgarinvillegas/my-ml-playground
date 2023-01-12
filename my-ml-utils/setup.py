@@ -8,5 +8,5 @@ setup(name='my_ml_utils_dist',  # name just for installation
       author='Edgar Villegas',
       author_email='edgarinvillegas@hotmail.com',
       install_requires=['torch'],  # consumer dependency
-      packages=['train_validate_package'], # names for importing
+      packages=['train_validate_test_package'], # names for importing
      )
