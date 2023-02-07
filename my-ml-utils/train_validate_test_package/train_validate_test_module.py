@@ -56,15 +56,17 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
         metrics = {'train': None, 'valid': None}
         for phase in ['train', 'valid']:
             # Instantiate the metrics by calling their factories
-            avg_loss, metrics[phase] = forward_backward_pass(model, loaders[phase], criterion, optimizer,
-                                                             metric_factories, phase, device)
+            avg_loss, metrics[phase] = _forward_backward_pass(model, loaders[phase], criterion, optimizer,
+                                                              metric_factories, phase, device)
             epoch_avg_loss[phase] += avg_loss
             if phase == 'valid':  # If epoch is completed
                 if on_epoch_end:
                     on_epoch_end(model, epoch, epoch_avg_loss['train'], epoch_avg_loss['valid'], best_valid_loss,
                                  metrics['train'], metrics['valid'])
-                    # If there's a new minimum loss, save the model weights
                 epoch_valid_loss = epoch_avg_loss['valid']  # Alias
+                # If there's a new minimum loss, save the model weights
+                # If the validation loss decreases by more than 1%, save the model
+                # if best_valid_loss == float('inf') or (best_valid_loss - epoch_valid_loss) / best_valid_loss > 0.01:
                 if epoch_valid_loss < best_valid_loss:
                     best_valid_loss = epoch_valid_loss
                     best_model_state = copy.deepcopy(model.state_dict())
@@ -74,7 +76,7 @@ def train_validate(model, train_loader, valid_loader, criterion, optimizer, epoc
     return best_model_state
 
 
-def forward_backward_pass(model, loader, criterion, optimizer, metric_factories, phase, device):
+def _forward_backward_pass(model, loader, criterion, optimizer, metric_factories, phase, device):
     '''
     @private
     :param model:
@@ -121,4 +123,4 @@ def test(model, loader, criterion, optimizer, metric_factories={}, use_gpu=True)
     '''
     device = 'cuda' if use_gpu and torch.cuda.is_available() else 'cpu'
     model.to(device)
-    return forward_backward_pass(model, loader, criterion, optimizer, metric_factories, phase='test', device=device)
+    return _forward_backward_pass(model, loader, criterion, optimizer, metric_factories, phase='test', device=device)
