@@ -1,8 +1,9 @@
 import math
 import torch
 import torch.utils.data
+from torch.utils.data.sampler import SubsetRandomSampler
 from pathlib import Path
-from torchvision import datasets, transforms
+from torchvision import datasets, transforms as T
 import multiprocessing
 
 from .helpers import compute_mean_and_std, get_data_location
@@ -46,15 +47,48 @@ def get_data_loaders(
     # HINT: resize the image to 256 first, then crop them to 224, then add the
     # appropriate transforms for that step
     data_transforms = {
-        "train": transforms.Compose(
-            # YOUR CODE HERE
+        # YOUR CODE HERE
+        "train": T.Compose(
+            [
+                # We enlarge them a bit so we can then
+                # take a random crop
+                T.Resize(256),
+
+                # take a random part of the image
+                T.RandomCrop(224),
+
+                # Horizontal flip is not part of RandAugment according to the RandAugment
+                # paper
+                T.RandomHorizontalFlip(0.5),
+
+                # Use RandAugment
+                # RandAugment has 2 main parameters: how many transformations should be
+                # applied to each image, and the strength of these transformations.
+                T.RandAugment(
+                    num_ops=2,
+                    magnitude=15,
+                    interpolation=T.InterpolationMode.BILINEAR,
+                ),
+                T.ToTensor(),
+                T.Normalize(mean, std),
+            ]
         ),
-        "valid": transforms.Compose(
-            # YOUR CODE HERE
-        ),
-        "test": transforms.Compose(
-            # YOUR CODE HERE
-        ),
+        "valid": T.Compose([
+            # Both of these are useless, but we keep them because
+            # in a non-academic dataset you will need them
+            T.Resize(256),
+            T.CenterCrop(224),
+            T.ToTensor(),
+            T.Normalize(mean, std),
+        ]),
+        "test": T.Compose([
+            # Both of these are useless, but we keep them because
+            # in a non-academic dataset you will need them
+            T.Resize(256),
+            T.CenterCrop(224),
+            T.ToTensor(),
+            T.Normalize(mean, std),
+        ]),
     }
 
     # Create train and validation datasets
@@ -62,6 +96,7 @@ def get_data_loaders(
         base_path / "train",
         # YOUR CODE HERE: add the appropriate transform that you defined in
         # the data_transforms dictionary
+        transform=data_transforms["train"]
     )
     # The validation dataset is a split from the train_one_epoch dataset, so we read
     # from the same folder, but we apply the transforms for validation
@@ -69,7 +104,10 @@ def get_data_loaders(
         base_path / "train",
         # YOUR CODE HERE: add the appropriate transform that you defined in
         # the data_transforms dictionary
+        transform=data_transforms["valid"]
     )
+
+    # newTrainSet, valSet = torch.utils.data.random_split(dataset, [20000, 50000], generator=torch.Generator().manual_seed(42))
 
     # obtain training indices that will be used for validation
     n_tot = len(train_data)
@@ -85,7 +123,7 @@ def get_data_loaders(
 
     # define samplers for obtaining training and validation batches
     train_sampler = torch.utils.data.SubsetRandomSampler(train_idx)
-    valid_sampler  = # YOUR CODE HERE
+    valid_sampler = torch.utils.data.SubsetRandomSampler(valid_idx) # YOUR CODE HERE
 
     # prepare data loaders
     data_loaders["train"] = torch.utils.data.DataLoader(
@@ -96,12 +134,17 @@ def get_data_loaders(
     )
     data_loaders["valid"] = torch.utils.data.DataLoader(
         # YOUR CODE HERE
+        valid_data,
+        batch_size=batch_size,
+        sampler=valid_sampler,
+        num_workers=num_workers
     )
 
     # Now create the test data loader
     test_data = datasets.ImageFolder(
         base_path / "test",
         # YOUR CODE HERE (add the test transform)
+        transform=data_transforms['test']
     )
 
     if limit > 0:
@@ -112,6 +155,11 @@ def get_data_loaders(
 
     data_loaders["test"] = torch.utils.data.DataLoader(
         # YOUR CODE HERE (remember to add shuffle=False as well)
+        test_data,
+        batch_size=batch_size,
+        sampler=test_sampler,
+        num_workers=num_workers,
+        shuffle=False
     )
 
     return data_loaders
@@ -129,17 +177,17 @@ def visualize_one_batch(data_loaders, max_n: int = 5):
     # YOUR CODE HERE:
     # obtain one batch of training images
     # First obtain an iterator from the train dataloader
-    dataiter  = # YOUR CODE HERE
+    dataiter  = iter(data_loaders['train']) # YOUR CODE HERE
     # Then call the .next() method on the iterator you just
     # obtained
-    images, labels  = # YOUR CODE HERE
+    images, labels  = next(dataiter) # YOUR CODE HERE
 
     # Undo the normalization (for visualization purposes)
     mean, std = compute_mean_and_std()
-    invTrans = transforms.Compose(
+    invTrans = T.Compose(
         [
-            transforms.Normalize(mean=[0.0, 0.0, 0.0], std=1 / std),
-            transforms.Normalize(mean=-mean, std=[1.0, 1.0, 1.0]),
+            T.Normalize(mean=[0.0, 0.0, 0.0], std=1 / std),
+            T.Normalize(mean=-mean, std=[1.0, 1.0, 1.0]),
         ]
     )
 
@@ -147,7 +195,7 @@ def visualize_one_batch(data_loaders, max_n: int = 5):
 
     # YOUR CODE HERE:
     # Get class names from the train data loader
-    class_names  = # YOUR CODE HERE
+    class_names  = data_loaders['train'].dataset.classes # YOUR CODE HERE
 
     # Convert from BGR (the format used by pytorch) to
     # RGB (the format expected by matplotlib)
@@ -175,14 +223,13 @@ def data_loaders():
 
 
 def test_data_loaders_keys(data_loaders):
-
     assert set(data_loaders.keys()) == {"train", "valid", "test"}, "The keys of the data_loaders dictionary should be train, valid and test"
 
 
 def test_data_loaders_output_type(data_loaders):
     # Test the data loaders
     dataiter = iter(data_loaders["train"])
-    images, labels = dataiter.next()
+    images, labels = next(dataiter)
 
     assert isinstance(images, torch.Tensor), "images should be a Tensor"
     assert isinstance(labels, torch.Tensor), "labels should be a Tensor"
