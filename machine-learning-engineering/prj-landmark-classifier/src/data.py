@@ -65,7 +65,7 @@ def get_data_loaders(
                 # RandAugment has 2 main parameters: how many transformations should be
                 # applied to each image, and the strength of these transformations.
                 T.RandAugment(
-                    num_ops=2,
+                    num_ops=3,
                     magnitude=15,
                     interpolation=T.InterpolationMode.BILINEAR,
                 ),
@@ -239,7 +239,7 @@ def test_data_loaders_output_type(data_loaders):
 
 def test_data_loaders_output_shape(data_loaders):
     dataiter = iter(data_loaders["train"])
-    images, labels = dataiter.next()
+    images, labels = next(dataiter)
 
     assert len(images) == 2, f"Expected a batch of size 2, got size {len(images)}"
     assert (

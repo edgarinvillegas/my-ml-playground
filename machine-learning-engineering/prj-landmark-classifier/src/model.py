@@ -5,7 +5,6 @@ import torch.nn as nn
 # define the CNN architecture
 class MyModel(nn.Module):
     def __init__(self, num_classes: int = 1000, dropout: float = 0.7, img_size=224) -> None:
-
         super().__init__()
 
         # YOUR CODE HERE
@@ -19,7 +18,7 @@ class MyModel(nn.Module):
             nn.BatchNorm2d(16),
 
             nn.ReLU(),
-            nn.MaxPool2d(2, 2), # -> 16x112x112
+            nn.MaxPool2d(2, 2),  # -> 16x112x112
 
             nn.Conv2d(16, 32, 3, padding="same"),  # -> 32x112x112
             nn.BatchNorm2d(32),
@@ -34,30 +33,34 @@ class MyModel(nn.Module):
             nn.MaxPool2d(2, 2),  # -> 64x28x28
 
             # Since we are using BatchNorm and data augmentation,
-            # we can go deeper than before and add one more conv layer
+            # we can go deeper than before and add 2 more conv layer
             nn.Conv2d(64, 128, 3, padding="same"),  # -> 128x28x28
             nn.BatchNorm2d(128),
 
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # -> 128x14x14
 
-            nn.Flatten(),  # ->  1x128*14*14
+            nn.Conv2d(128, 256, 3, padding="same"),  # -> 256x14x14
+            nn.BatchNorm2d(256),
 
-            # nn.Linear(128 * 14 * 14, 500),  # -> 500
-            nn.Linear(128 * (img_size//16) ** 2, 500),  # -> 500
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # -> 256x7x7
 
+            nn.Flatten(),  # ->  1x256*14*14
+
+            # nn.Linear(256 * 7 * 7, 500),  # -> 1024
+            # /32 is because we had 5 maxpool layers (2^5)
+            nn.Linear(256 * (img_size // 32) ** 2, 1024),  # -> 1024
 
             nn.Dropout(dropout),
             # Add batch normalization (BatchNorm1d, NOT BatchNorm2d) here
-            nn.BatchNorm1d(500),
+            nn.BatchNorm1d(1024),
 
             nn.ReLU(),
-            nn.Linear(500, num_classes),
+            nn.Linear(1024, num_classes),
         )
 
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print("x shape: ", x.shape)
         # YOUR CODE HERE: process the input tensor through the
         # feature extractor, the pooling and the final linear
         # layers (if appropriate for the architecture chosen)
@@ -78,7 +81,6 @@ def data_loaders():
 
 
 def test_model_construction(data_loaders):
-
     model = MyModel(num_classes=23, dropout=0.3)
 
     dataiter = iter(data_loaders["train"])
