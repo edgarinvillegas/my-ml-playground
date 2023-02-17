@@ -46,7 +46,7 @@ class MyModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(2, 2),  # -> 256x7x7
 
-            nn.Flatten(),  # ->  1x256*14*14
+            nn.Flatten(),  # ->  1x256*7*7
 
             # nn.Linear(256 * 7 * 7, 500),  # -> 1024
             # /32 is because we had 5 maxpool layers (2^5)
