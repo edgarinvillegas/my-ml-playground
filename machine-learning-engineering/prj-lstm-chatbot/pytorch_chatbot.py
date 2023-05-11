@@ -679,7 +679,7 @@ class EncoderRNN(nn.Module):
         # Convert word indexes to embeddings
         embedded = self.embedding(input_seq)
         # Pack padded batch of sequences for RNN module
-        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths)
+        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths.to('cpu'))
         # Forward pass through GRU
         outputs, hidden = self.gru(packed, hidden)
         # Unpack padding
@@ -1259,11 +1259,11 @@ dropout = 0.1
 batch_size = 64
 
 # Set checkpoint to load from; set to None if starting from scratch
-loadFilename = None
+# loadFilename = None
 checkpoint_iter = 4000
-#loadFilename = os.path.join(save_dir, model_name, corpus_name,
-#                            '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size),
-#                            '{}_checkpoint.tar'.format(checkpoint_iter))
+loadFilename = os.path.join(save_dir, model_name, corpus_name,
+                           '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size),
+                           '{}_checkpoint.tar'.format(checkpoint_iter))
 
 
 # Load model if a loadFilename is provided
@@ -1351,7 +1351,7 @@ decoder.eval()
 searcher = GreedySearchDecoder(encoder, decoder)
 
 # Begin chatting (uncomment and run the following line to begin)
-# evaluateInput(encoder, decoder, searcher, voc)
+evaluateInput(encoder, decoder, searcher, voc)
 
 
 ######################################################################
