@@ -1,103 +1,10 @@
-# -*- coding: utf-8 -*-
-
 """
 Chatbot Tutorial
 ================
-**Author:** `Matthew Inkawhich <https://github.com/MatthewInkawhich>`_
+Code based on Matthew Inkawhich's <https://github.com/MatthewInkawhich>
 """
 
-
-######################################################################
-# In this tutorial, we explore a fun and interesting use-case of recurrent
-# sequence-to-sequence models. We will train a simple chatbot using movie
-# scripts from the `Cornell Movie-Dialogs
-# Corpus <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>`__.
-#
-# Conversational models are a hot topic in artificial intelligence
-# research. Chatbots can be found in a variety of settings, including
-# customer service applications and online helpdesks. These bots are often
-# powered by retrieval-based models, which output predefined responses to
-# questions of certain forms. In a highly restricted domain like a
-# company’s IT helpdesk, these models may be sufficient, however, they are
-# not robust enough for more general use-cases. Teaching a machine to
-# carry out a meaningful conversation with a human in multiple domains is
-# a research question that is far from solved. Recently, the deep learning
-# boom has allowed for powerful generative models like Google’s `Neural
-# Conversational Model <https://arxiv.org/abs/1506.05869>`__, which marks
-# a large step towards multi-domain generative conversational models. In
-# this tutorial, we will implement this kind of model in PyTorch.
-#
-# .. figure:: /_static/img/chatbot/bot.png
-#    :align: center
-#    :alt: bot
-#
-# .. code:: python
-#
-#   > hello?
-#   Bot: hello .
-#   > where am I?
-#   Bot: you re in a hospital .
-#   > who are you?
-#   Bot: i m a lawyer .
-#   > how are you doing?
-#   Bot: i m fine .
-#   > are you my friend?
-#   Bot: no .
-#   > you're under arrest
-#   Bot: i m trying to help you !
-#   > i'm just kidding
-#   Bot: i m sorry .
-#   > where are you from?
-#   Bot: san francisco .
-#   > it's time for me to leave
-#   Bot: i know .
-#   > goodbye
-#   Bot: goodbye .
-#
-# **Tutorial Highlights**
-#
-# -  Handle loading and preprocessing of `Cornell Movie-Dialogs
-#    Corpus <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>`__
-#    dataset
-# -  Implement a sequence-to-sequence model with `Luong attention
-#    mechanism(s) <https://arxiv.org/abs/1508.04025>`__
-# -  Jointly train encoder and decoder models using mini-batches
-# -  Implement greedy-search decoding module
-# -  Interact with trained chatbot
-#
-# **Acknowledgements**
-#
-# This tutorial borrows code from the following sources:
-#
-# 1) Yuan-Kuei Wu’s pytorch-chatbot implementation:
-#    https://github.com/ywk991112/pytorch-chatbot
-#
-# 2) Sean Robertson’s practical-pytorch seq2seq-translation example:
-#    https://github.com/spro/practical-pytorch/tree/master/seq2seq-translation
-#
-# 3) FloydHub’s Cornell Movie Corpus preprocessing code:
-#    https://github.com/floydhub/textutil-preprocess-cornell-movie-corpus
-#
-
-
-######################################################################
-# Preparations
-# ------------
-#
-# To start, Download the data ZIP file
-# `here <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>`__
-# and put in a ``data/`` directory under the current directory.
-#
-# After that, let’s import some necessities.
-#
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import torch
-from torch.jit import script, trace
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
@@ -109,39 +16,13 @@ import unicodedata
 import codecs
 from io import open
 import itertools
-import math
 
 
-USE_CUDA = torch.cuda.is_available()
-device = torch.device("cuda" if USE_CUDA else "cpu")
+USE_GPU = torch.cuda.is_available()
+device = torch.device("cuda" if USE_GPU else "cpu")
 
-
-######################################################################
-# Load & Preprocess Data
-# ----------------------
-#
-# The next step is to reformat our data file and load the data into
-# structures that we can work with.
-#
-# The `Cornell Movie-Dialogs
-# Corpus <https://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html>`__
-# is a rich dataset of movie character dialog:
-#
-# -  220,579 conversational exchanges between 10,292 pairs of movie
-#    characters
-# -  9,035 characters from 617 movies
-# -  304,713 total utterances
-#
-# This dataset is large and diverse, and there is a great variation of
-# language formality, time periods, sentiment, etc. Our hope is that this
-# diversity makes our model robust to many forms of inputs and queries.
-#
-# First, we’ll take a look at some lines of our datafile to see the
-# original format.
-#
-
-corpus_name = "cornell movie-dialogs corpus"
-corpus = os.path.join("data", corpus_name)
+dataset_name = "cornell movie-dialogs corpus"
+dataset_path = os.path.join("data", dataset_name)
 
 def printLines(file, n=10):
     with open(file, 'rb') as datafile:
@@ -149,7 +30,7 @@ def printLines(file, n=10):
     for line in lines[:n]:
         print(line)
 
-printLines(os.path.join(corpus, "movie_lines.txt"))
+printLines(os.path.join(dataset_path, "movie_lines.txt"))
 
 
 ######################################################################
@@ -224,7 +105,7 @@ def extractSentencePairs(conversations):
 #
 
 # Define path to new file
-datafile = os.path.join(corpus, "formatted_movie_lines.txt")
+datafile = os.path.join(dataset_path, "formatted_movie_lines.txt")
 
 delimiter = '\t'
 # Unescape the delimiter
@@ -238,9 +119,9 @@ MOVIE_CONVERSATIONS_FIELDS = ["character1ID", "character2ID", "movieID", "uttera
 
 # Load lines and process conversations
 print("\nProcessing corpus...")
-lines = loadLines(os.path.join(corpus, "movie_lines.txt"), MOVIE_LINES_FIELDS)
+lines = loadLines(os.path.join(dataset_path, "movie_lines.txt"), MOVIE_LINES_FIELDS)
 print("\nLoading conversations...")
-conversations = loadConversations(os.path.join(corpus, "movie_conversations.txt"),
+conversations = loadConversations(os.path.join(dataset_path, "movie_conversations.txt"),
                                   lines, MOVIE_CONVERSATIONS_FIELDS)
 
 # Write new csv file
@@ -396,7 +277,7 @@ def loadPrepareData(corpus, corpus_name, datafile, save_dir):
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-voc, pairs = loadPrepareData(corpus, corpus_name, datafile, save_dir)
+voc, pairs = loadPrepareData(dataset_path, dataset_name, datafile, save_dir)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
@@ -650,7 +531,7 @@ print("max_target_len:", max_target_len)
 #    batch_size)*
 # -  ``input_lengths``: list of sentence lengths corresponding to each
 #    sentence in the batch; shape=\ *(batch_size)*
-# -  ``hidden``: hidden state; shape=\ *(n_layers x num_directions,
+# -  ``hidden``: hidden state; shape=\ *(num_layers x num_directions,
 #    batch_size, hidden_size)*
 #
 # **Outputs:**
@@ -658,217 +539,64 @@ print("max_target_len:", max_target_len)
 # -  ``outputs``: output features from the last hidden layer of the GRU
 #    (sum of bidirectional outputs); shape=\ *(max_length, batch_size,
 #    hidden_size)*
-# -  ``hidden``: updated hidden state from GRU; shape=\ *(n_layers x
+# -  ``hidden``: updated hidden state from GRU; shape=\ *(num_layers x
 #    num_directions, batch_size, hidden_size)*
 #
 #
 
-class EncoderRNN(nn.Module):
-    def __init__(self, hidden_size, embedding, n_layers=1, dropout=0):
-        super(EncoderRNN, self).__init__()
-        self.n_layers = n_layers
+class Encoder(nn.Module):
+    def __init__(self, hidden_size, embedding):
+        super(Encoder, self).__init__()
         self.hidden_size = hidden_size
+        self.num_layers = 2
         self.embedding = embedding
 
-        # Initialize GRU; the input_size and hidden_size params are both set to 'hidden_size'
-        #   because our input size is a word embedding with number of features == hidden_size
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers,
-                          dropout=(0 if n_layers == 1 else dropout), bidirectional=True)
+        self.gru = nn.GRU(hidden_size, hidden_size, self.num_layers, dropout=0.1, bidirectional=True)
 
-    def forward(self, input_seq, input_lengths, hidden=None):
-        # Convert word indexes to embeddings
-        embedded = self.embedding(input_seq)
-        # Pack padded batch of sequences for RNN module
-        packed = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths.to('cpu'))
-        # Forward pass through GRU
-        outputs, hidden = self.gru(packed, hidden)
-        # Unpack padding
-        outputs, _ = nn.utils.rnn.pad_packed_sequence(outputs)
-        # Sum bidirectional GRU outputs
-        outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
-        # Return output and final hidden state
-        return outputs, hidden
+    def forward(self, input_sequence, input_lengths, hidden=None):
+        embedded = self.embedding(input_sequence)
+        packed_sequence = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths.to('cpu'))
+        output, hidden = self.gru(packed_sequence, hidden)
+        output, _ = nn.utils.rnn.pad_packed_sequence(output)
+        output = output[:, :, :self.hidden_size] + output[:, : ,self.hidden_size:]
+        return output, hidden
 
-
-######################################################################
-# Decoder
-# ~~~~~~~
-#
-# The decoder RNN generates the response sentence in a token-by-token
-# fashion. It uses the encoder’s context vectors, and internal hidden
-# states to generate the next word in the sequence. It continues
-# generating words until it outputs an *EOS_token*, representing the end
-# of the sentence. A common problem with a vanilla seq2seq decoder is that
-# if we rely soley on the context vector to encode the entire input
-# sequence’s meaning, it is likely that we will have information loss.
-# This is especially the case when dealing with long input sequences,
-# greatly limiting the capability of our decoder.
-#
-# To combat this, `Bahdanau et al. <https://arxiv.org/abs/1409.0473>`__
-# created an “attention mechanism” that allows the decoder to pay
-# attention to certain parts of the input sequence, rather than using the
-# entire fixed context at every step.
-#
-# At a high level, attention is calculated using the decoder’s current
-# hidden state and the encoder’s outputs. The output attention weights
-# have the same shape as the input sequence, allowing us to multiply them
-# by the encoder outputs, giving us a weighted sum which indicates the
-# parts of encoder output to pay attention to. `Sean
-# Robertson’s <https://github.com/spro>`__ figure describes this very
-# well:
-#
-# .. figure:: /_static/img/chatbot/attn2.png
-#    :align: center
-#    :alt: attn2
-#
-# `Luong et al. <https://arxiv.org/abs/1508.04025>`__ improved upon
-# Bahdanau et al.’s groundwork by creating “Global attention”. The key
-# difference is that with “Global attention”, we consider all of the
-# encoder’s hidden states, as opposed to Bahdanau et al.’s “Local
-# attention”, which only considers the encoder’s hidden state from the
-# current time step. Another difference is that with “Global attention”,
-# we calculate attention weights, or energies, using the hidden state of
-# the decoder from the current time step only. Bahdanau et al.’s attention
-# calculation requires knowledge of the decoder’s state from the previous
-# time step. Also, Luong et al. provides various methods to calculate the
-# attention energies between the encoder output and decoder output which
-# are called “score functions”:
-#
-# .. figure:: /_static/img/chatbot/scores.png
-#    :width: 60%
-#    :align: center
-#    :alt: scores
-#
-# where :math:`h_t` = current target decoder state and :math:`\bar{h}_s` =
-# all encoder states.
-#
-# Overall, the Global attention mechanism can be summarized by the
-# following figure. Note that we will implement the “Attention Layer” as a
-# separate ``nn.Module`` called ``Attn``. The output of this module is a
-# softmax normalized weights tensor of shape *(batch_size, 1,
-# max_length)*.
-#
-# .. figure:: /_static/img/chatbot/global_attn.png
-#    :align: center
-#    :width: 60%
-#    :alt: global_attn
-#
-
-# Luong attention layer
-class Attn(nn.Module):
-    def __init__(self, method, hidden_size):
-        super(Attn, self).__init__()
-        self.method = method
-        if self.method not in ['dot', 'general', 'concat']:
-            raise ValueError(self.method, "is not an appropriate attention method.")
-        self.hidden_size = hidden_size
-        if self.method == 'general':
-            self.attn = nn.Linear(self.hidden_size, hidden_size)
-        elif self.method == 'concat':
-            self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
-            self.v = nn.Parameter(torch.FloatTensor(hidden_size))
-
-    def dot_score(self, hidden, encoder_output):
-        return torch.sum(hidden * encoder_output, dim=2)
-
-    def general_score(self, hidden, encoder_output):
-        energy = self.attn(encoder_output)
-        return torch.sum(hidden * energy, dim=2)
-
-    def concat_score(self, hidden, encoder_output):
-        energy = self.attn(torch.cat((hidden.expand(encoder_output.size(0), -1, -1), encoder_output), 2)).tanh()
-        return torch.sum(self.v * energy, dim=2)
+class Attention(nn.Module):
+    def __init__(self):
+        super(Attention, self).__init__()
 
     def forward(self, hidden, encoder_outputs):
-        # Calculate the attention weights (energies) based on the given method
-        if self.method == 'general':
-            attn_energies = self.general_score(hidden, encoder_outputs)
-        elif self.method == 'concat':
-            attn_energies = self.concat_score(hidden, encoder_outputs)
-        elif self.method == 'dot':
-            attn_energies = self.dot_score(hidden, encoder_outputs)
+        energies = torch.sum(hidden * encoder_outputs, dim=2)
+        energies = energies.t()
+        return F.softmax(energies, dim=1).unsqueeze(1)
 
-        # Transpose max_length and batch_size dimensions
-        attn_energies = attn_energies.t()
+class Decoder(nn.Module):
+    def __init__(self, embedding, hidden_size, output_size):
+        super(Decoder, self).__init__()
 
-        # Return the softmax normalized probability scores (with added dimension)
-        return F.softmax(attn_energies, dim=1).unsqueeze(1)
-
-
-######################################################################
-# Now that we have defined our attention submodule, we can implement the
-# actual decoder model. For the decoder, we will manually feed our batch
-# one time step at a time. This means that our embedded word tensor and
-# GRU output will both have shape *(1, batch_size, hidden_size)*.
-#
-# **Computation Graph:**
-#
-#    1) Get embedding of current input word.
-#    2) Forward through unidirectional GRU.
-#    3) Calculate attention weights from the current GRU output from (2).
-#    4) Multiply attention weights to encoder outputs to get new "weighted sum" context vector.
-#    5) Concatenate weighted context vector and GRU output using Luong eq. 5.
-#    6) Predict next word using Luong eq. 6 (without softmax).
-#    7) Return output and final hidden state.
-#
-# **Inputs:**
-#
-# -  ``input_step``: one time step (one word) of input sequence batch;
-#    shape=\ *(1, batch_size)*
-# -  ``last_hidden``: final hidden layer of GRU; shape=\ *(n_layers x
-#    num_directions, batch_size, hidden_size)*
-# -  ``encoder_outputs``: encoder model’s output; shape=\ *(max_length,
-#    batch_size, hidden_size)*
-#
-# **Outputs:**
-#
-# -  ``output``: softmax normalized tensor giving probabilities of each
-#    word being the correct next word in the decoded sequence;
-#    shape=\ *(batch_size, voc.num_words)*
-# -  ``hidden``: final hidden state of GRU; shape=\ *(n_layers x
-#    num_directions, batch_size, hidden_size)*
-#
-
-class LuongAttnDecoderRNN(nn.Module):
-    def __init__(self, attn_model, embedding, hidden_size, output_size, n_layers=1, dropout=0.1):
-        super(LuongAttnDecoderRNN, self).__init__()
-
-        # Keep for reference
-        self.attn_model = attn_model
         self.hidden_size = hidden_size
         self.output_size = output_size
-        self.n_layers = n_layers
-        self.dropout = dropout
+        self.num_layers = 2
+        dropout = 0.1
 
-        # Define layers
         self.embedding = embedding
-        self.embedding_dropout = nn.Dropout(dropout)
-        self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
+        self.emb_dropout = nn.Dropout(dropout)
         self.concat = nn.Linear(hidden_size * 2, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, self.num_layers, dropout=dropout)
         self.out = nn.Linear(hidden_size, output_size)
+        self.attn = Attention()
 
-        self.attn = Attn(attn_model, hidden_size)
-
-    def forward(self, input_step, last_hidden, encoder_outputs):
-        # Note: we run this one step (word) at a time
-        # Get embedding of current input word
-        embedded = self.embedding(input_step)
-        embedded = self.embedding_dropout(embedded)
-        # Forward through unidirectional GRU
-        rnn_output, hidden = self.gru(embedded, last_hidden)
-        # Calculate attention weights from the current GRU output
-        attn_weights = self.attn(rnn_output, encoder_outputs)
-        # Multiply attention weights to encoder outputs to get new "weighted sum" context vector
-        context = attn_weights.bmm(encoder_outputs.transpose(0, 1))
-        # Concatenate weighted context vector and GRU output using Luong eq. 5
+    def forward(self, input_step, prev_hidden, enc_outputs):
+        embedded = self.emb_dropout(self.embedding(input_step))
+        rnn_output, hidden = self.gru(embedded, prev_hidden)
+        attention_weights = self.attn(rnn_output, enc_outputs)
+        context_vector = attention_weights.bmm(enc_outputs.transpose(0, 1))
         rnn_output = rnn_output.squeeze(0)
-        context = context.squeeze(1)
-        concat_input = torch.cat((rnn_output, context), 1)
+        context_vector = context_vector.squeeze(1)
+        concat_input = torch.cat((rnn_output, context_vector), 1)
         concat_output = torch.tanh(self.concat(concat_input))
-        # Predict next word using Luong eq. 6
-        output = self.out(concat_output)
+        output = self.out(concat_output) # Predict next word
         output = F.softmax(output, dim=1)
-        # Return output and final hidden state
         return output, hidden
 
 
@@ -984,7 +712,7 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     decoder_input = decoder_input.to(device)
 
     # Set initial decoder hidden state to the encoder's final hidden state
-    decoder_hidden = encoder_hidden[:decoder.n_layers]
+    decoder_hidden = encoder_hidden[:decoder.num_layers]
 
     # Determine if we are using teacher forcing this iteration
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
@@ -1049,7 +777,7 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
 # to run inference, or we can continue training right where we left off.
 #
 
-def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, encoder_n_layers, decoder_n_layers, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
     # Load batches for each iteration
     training_batches = [batch2TrainData(voc, [random.choice(pairs) for _ in range(batch_size)])
@@ -1082,7 +810,7 @@ def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, deco
 
         # Save checkpoint
         if (iteration % save_every == 0):
-            directory = os.path.join(save_dir, model_name, corpus_name, '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size))
+            directory = os.path.join(save_dir, model_name, corpus_name, '{}'.format(hidden_size))
             if not os.path.exists(directory):
                 os.makedirs(directory)
             torch.save({
@@ -1144,7 +872,7 @@ class GreedySearchDecoder(nn.Module):
         # Forward input through encoder model
         encoder_outputs, encoder_hidden = self.encoder(input_seq, input_length)
         # Prepare encoder's final hidden layer to be first hidden input to the decoder
-        decoder_hidden = encoder_hidden[:decoder.n_layers]
+        decoder_hidden = encoder_hidden[:decoder.num_layers]
         # Initialize decoder input with SOS_token
         decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_token
         # Initialize tensors to append decoded words to
@@ -1249,22 +977,16 @@ def evaluateInput(encoder, decoder, searcher, voc):
 
 # Configure models
 model_name = 'cb_model'
-attn_model = 'dot'
-#attn_model = 'general'
-#attn_model = 'concat'
 hidden_size = 500
-encoder_n_layers = 2
-decoder_n_layers = 2
-dropout = 0.1
 batch_size = 64
 
 # Set checkpoint to load from; set to None if starting from scratch
-# loadFilename = None
-checkpoint_iter = 4000
-loadFilename = os.path.join(save_dir, model_name, corpus_name,
-                           '{}-{}_{}'.format(encoder_n_layers, decoder_n_layers, hidden_size),
-                           '{}_checkpoint.tar'.format(checkpoint_iter))
 
+checkpoint_iter = 4000
+loadFilename = os.path.join(save_dir, model_name, dataset_name,
+                           '{}'.format(hidden_size),
+                           '{}_checkpoint.tar'.format(checkpoint_iter))
+loadFilename = None
 
 # Load model if a loadFilename is provided
 if loadFilename:
@@ -1286,8 +1008,8 @@ embedding = nn.Embedding(voc.num_words, hidden_size)
 if loadFilename:
     embedding.load_state_dict(embedding_sd)
 # Initialize encoder & decoder models
-encoder = EncoderRNN(hidden_size, embedding, encoder_n_layers, dropout)
-decoder = LuongAttnDecoderRNN(attn_model, embedding, hidden_size, voc.num_words, decoder_n_layers, dropout)
+encoder = Encoder(hidden_size, embedding)
+decoder = Decoder(embedding, hidden_size, voc.num_words)
 if loadFilename:
     encoder.load_state_dict(encoder_sd)
     decoder.load_state_dict(decoder_sd)
@@ -1332,8 +1054,8 @@ if loadFilename:
 # Run training iterations
 print("Starting Training!")
 trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer,
-           embedding, encoder_n_layers, decoder_n_layers, save_dir, n_iteration, batch_size,
-           print_every, save_every, clip, corpus_name, loadFilename)
+           embedding, save_dir, n_iteration, batch_size,
+           print_every, save_every, clip, dataset_name, loadFilename)
 
 
 ######################################################################
