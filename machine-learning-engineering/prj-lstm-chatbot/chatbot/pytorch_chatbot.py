@@ -600,6 +600,17 @@ class Decoder(nn.Module):
         return output, hidden
 
 
+class Seq2Seq(nn.Module):
+
+    def __init__(self, encoder_hidden_size, decoder_hidden_size, decoder_output_size, embedding):
+        super(Seq2Seq, self).__init__()
+        self.encoder = Encoder(encoder_hidden_size, embedding)
+        self.decoder = Decoder(embedding, decoder_hidden_size, decoder_output_size)
+
+    def forward(self, src, trg, teacher_forcing_ratio=0.5):
+        return o
+
+
 ######################################################################
 # Define Training Procedure
 # -------------------------
@@ -718,32 +729,24 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     # Forward batch of sequences through decoder one time step at a time
-    if use_teacher_forcing:
-        for t in range(max_target_len):
-            decoder_output, decoder_hidden = decoder(
-                decoder_input, decoder_hidden, encoder_outputs
-            )
+    # print('max_target_len: ', max_target_len)
+    for t in range(max_target_len):
+        decoder_output, decoder_hidden = decoder(
+            decoder_input, decoder_hidden, encoder_outputs
+        )
+        if use_teacher_forcing:
             # Teacher forcing: next input is current target
             decoder_input = target_variable[t].view(1, -1)
-            # Calculate and accumulate loss
-            mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
-            loss += mask_loss
-            print_losses.append(mask_loss.item() * nTotal)
-            n_totals += nTotal
-    else:
-        for t in range(max_target_len):
-            decoder_output, decoder_hidden = decoder(
-                decoder_input, decoder_hidden, encoder_outputs
-            )
+        else:
             # No teacher forcing: next input is decoder's own current output
             _, topi = decoder_output.topk(1)
             decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
             decoder_input = decoder_input.to(device)
-            # Calculate and accumulate loss
-            mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
-            loss += mask_loss
-            print_losses.append(mask_loss.item() * nTotal)
-            n_totals += nTotal
+        # Calculate and accumulate loss
+        mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
+        loss += mask_loss
+        print_losses.append(mask_loss.item() * nTotal)
+        n_totals += nTotal
 
     # Perform backpropatation
     loss.backward()
@@ -1032,7 +1035,7 @@ print('Models built and ready to go!')
 
 # Configure training/optimization
 clip = 50.0
-teacher_forcing_ratio = 1.0
+teacher_forcing_ratio = 0.5
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
 n_iteration = 4000
