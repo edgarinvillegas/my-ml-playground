@@ -607,8 +607,45 @@ class Seq2Seq(nn.Module):
         self.encoder = Encoder(encoder_hidden_size, embedding)
         self.decoder = Decoder(embedding, decoder_hidden_size, decoder_output_size)
 
-    def forward(self, src, trg, teacher_forcing_ratio=0.5):
-        return o
+    def forward_batch(self, src, trg, max_target_len, lengths, mask, teacher_forcing_ratio=0.5, batch_size=1):
+        # Set device options
+        src = src.to(device)
+        lengths = lengths.to(device)
+        trg = trg.to(device)
+        mask = mask.to(device)
+        # Initialize variables
+        loss = 0
+        print_losses = []
+        n_totals = 0
+        # Forward pass through encoder
+        encoder_outputs, encoder_hidden = self.encoder(src, lengths)
+        # Create initial decoder input (start with SOS tokens for each sentence)
+        decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]])
+        decoder_input = decoder_input.to(device)
+        # Set initial decoder hidden state to the encoder's final hidden state
+        decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+        # Determine if we are using teacher forcing this iteration
+        use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+        # Forward batch of sequences through decoder one time step at a time
+        # print('max_target_len: ', max_target_len)
+        for t in range(max_target_len):
+            decoder_output, decoder_hidden = self.decoder(
+                decoder_input, decoder_hidden, encoder_outputs
+            )
+            if use_teacher_forcing:
+                # Teacher forcing: next input is current target
+                decoder_input = trg[t].view(1, -1)
+            else:
+                # No teacher forcing: next input is decoder's own current output
+                _, topi = decoder_output.topk(1)
+                decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
+                decoder_input = decoder_input.to(device)
+            # Calculate and accumulate loss
+            mask_loss, nTotal = maskNLLLoss(decoder_output, trg[t], mask[t])
+            loss += mask_loss
+            print_losses.append(mask_loss.item() * nTotal)
+            n_totals += nTotal
+        return loss, n_totals, print_losses
 
 
 ######################################################################
@@ -697,69 +734,28 @@ def maskNLLLoss(inp, target, mask):
 #
 
 
-def train(input_variable, lengths, target_variable, mask, max_target_len, encoder, decoder, embedding,
+def train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, embedding,
           encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
 
     # Zero gradients
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
-    loss, n_totals, print_losses = seq2seq_forward(input_variable, target_variable, max_target_len, lengths, mask,
+    loss, n_totals, print_losses = seq2seq.forward_batch(input_variable, target_variable, max_target_len, lengths, mask,
                                                    teacher_forcing_ratio, batch_size)
 
     # Perform backpropatation
     loss.backward()
 
     # Clip gradients: gradients are modified in place
-    _ = nn.utils.clip_grad_norm_(encoder.parameters(), clip)
-    _ = nn.utils.clip_grad_norm_(decoder.parameters(), clip)
+    _ = nn.utils.clip_grad_norm_(seq2seq.encoder.parameters(), clip)
+    _ = nn.utils.clip_grad_norm_(seq2seq.decoder.parameters(), clip)
 
     # Adjust model weights
     encoder_optimizer.step()
     decoder_optimizer.step()
 
     return sum(print_losses) / n_totals
-
-
-def seq2seq_forward(src, trg, max_target_len, lengths, mask, teacher_forcing_ratio = 0.5, batch_size=1):
-    # Set device options
-    src = src.to(device)
-    lengths = lengths.to(device)
-    trg = trg.to(device)
-    mask = mask.to(device)
-    # Initialize variables
-    loss = 0
-    print_losses = []
-    n_totals = 0
-    # Forward pass through encoder
-    encoder_outputs, encoder_hidden = encoder(src, lengths)
-    # Create initial decoder input (start with SOS tokens for each sentence)
-    decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]])
-    decoder_input = decoder_input.to(device)
-    # Set initial decoder hidden state to the encoder's final hidden state
-    decoder_hidden = encoder_hidden[:decoder.num_layers]
-    # Determine if we are using teacher forcing this iteration
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-    # Forward batch of sequences through decoder one time step at a time
-    # print('max_target_len: ', max_target_len)
-    for t in range(max_target_len):
-        decoder_output, decoder_hidden = decoder(
-            decoder_input, decoder_hidden, encoder_outputs
-        )
-        if use_teacher_forcing:
-            # Teacher forcing: next input is current target
-            decoder_input = trg[t].view(1, -1)
-        else:
-            # No teacher forcing: next input is decoder's own current output
-            _, topi = decoder_output.topk(1)
-            decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
-            decoder_input = decoder_input.to(device)
-        # Calculate and accumulate loss
-        mask_loss, nTotal = maskNLLLoss(decoder_output, trg[t], mask[t])
-        loss += mask_loss
-        print_losses.append(mask_loss.item() * nTotal)
-        n_totals += nTotal
-    return loss, n_totals, print_losses
 
 
 ######################################################################
@@ -780,7 +776,7 @@ def seq2seq_forward(src, trg, max_target_len, lengths, mask, teacher_forcing_rat
 # to run inference, or we can continue training right where we left off.
 #
 
-def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
     # Load batches for each iteration
     training_batches = [batch2TrainData(voc, [random.choice(pairs) for _ in range(batch_size)])
@@ -801,8 +797,8 @@ def trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, deco
         input_variable, lengths, target_variable, mask, max_target_len = training_batch
 
         # Run a training iteration with batch
-        loss = train(input_variable, lengths, target_variable, mask, max_target_len, encoder,
-                     decoder, embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
+        loss = train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq,
+                     embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
         print_loss += loss
 
         # Print progress
@@ -1011,8 +1007,9 @@ embedding = nn.Embedding(voc.num_words, hidden_size)
 if loadFilename:
     embedding.load_state_dict(embedding_sd)
 # Initialize encoder & decoder models
-encoder = Encoder(hidden_size, embedding)
-decoder = Decoder(embedding, hidden_size, voc.num_words)
+seq2seq = Seq2Seq(hidden_size, hidden_size, voc.num_words, embedding)
+encoder = seq2seq.encoder
+decoder = seq2seq.decoder
 if loadFilename:
     encoder.load_state_dict(encoder_sd)
     decoder.load_state_dict(decoder_sd)
@@ -1056,7 +1053,7 @@ if loadFilename:
 
 # Run training iterations
 print("Starting Training!")
-trainIters(model_name, voc, pairs, encoder, decoder, encoder_optimizer, decoder_optimizer,
+trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
            embedding, save_dir, n_iteration, batch_size,
            print_every, save_every, clip, dataset_name, loadFilename)
 
