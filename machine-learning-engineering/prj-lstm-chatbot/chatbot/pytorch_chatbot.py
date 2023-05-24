@@ -704,49 +704,8 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
 
-    # Set device options
-    input_variable = input_variable.to(device)
-    lengths = lengths.to(device)
-    target_variable = target_variable.to(device)
-    mask = mask.to(device)
-
-    # Initialize variables
-    loss = 0
-    print_losses = []
-    n_totals = 0
-
-    # Forward pass through encoder
-    encoder_outputs, encoder_hidden = encoder(input_variable, lengths)
-
-    # Create initial decoder input (start with SOS tokens for each sentence)
-    decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]])
-    decoder_input = decoder_input.to(device)
-
-    # Set initial decoder hidden state to the encoder's final hidden state
-    decoder_hidden = encoder_hidden[:decoder.num_layers]
-
-    # Determine if we are using teacher forcing this iteration
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
-    # Forward batch of sequences through decoder one time step at a time
-    # print('max_target_len: ', max_target_len)
-    for t in range(max_target_len):
-        decoder_output, decoder_hidden = decoder(
-            decoder_input, decoder_hidden, encoder_outputs
-        )
-        if use_teacher_forcing:
-            # Teacher forcing: next input is current target
-            decoder_input = target_variable[t].view(1, -1)
-        else:
-            # No teacher forcing: next input is decoder's own current output
-            _, topi = decoder_output.topk(1)
-            decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
-            decoder_input = decoder_input.to(device)
-        # Calculate and accumulate loss
-        mask_loss, nTotal = maskNLLLoss(decoder_output, target_variable[t], mask[t])
-        loss += mask_loss
-        print_losses.append(mask_loss.item() * nTotal)
-        n_totals += nTotal
+    loss, n_totals, print_losses = seq2seq_forward(input_variable, target_variable, max_target_len, lengths, mask,
+                                                   teacher_forcing_ratio, batch_size)
 
     # Perform backpropatation
     loss.backward()
@@ -760,6 +719,47 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, encode
     decoder_optimizer.step()
 
     return sum(print_losses) / n_totals
+
+
+def seq2seq_forward(src, trg, max_target_len, lengths, mask, teacher_forcing_ratio = 0.5, batch_size=1):
+    # Set device options
+    src = src.to(device)
+    lengths = lengths.to(device)
+    trg = trg.to(device)
+    mask = mask.to(device)
+    # Initialize variables
+    loss = 0
+    print_losses = []
+    n_totals = 0
+    # Forward pass through encoder
+    encoder_outputs, encoder_hidden = encoder(src, lengths)
+    # Create initial decoder input (start with SOS tokens for each sentence)
+    decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]])
+    decoder_input = decoder_input.to(device)
+    # Set initial decoder hidden state to the encoder's final hidden state
+    decoder_hidden = encoder_hidden[:decoder.num_layers]
+    # Determine if we are using teacher forcing this iteration
+    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+    # Forward batch of sequences through decoder one time step at a time
+    # print('max_target_len: ', max_target_len)
+    for t in range(max_target_len):
+        decoder_output, decoder_hidden = decoder(
+            decoder_input, decoder_hidden, encoder_outputs
+        )
+        if use_teacher_forcing:
+            # Teacher forcing: next input is current target
+            decoder_input = trg[t].view(1, -1)
+        else:
+            # No teacher forcing: next input is decoder's own current output
+            _, topi = decoder_output.topk(1)
+            decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
+            decoder_input = decoder_input.to(device)
+        # Calculate and accumulate loss
+        mask_loss, nTotal = maskNLLLoss(decoder_output, trg[t], mask[t])
+        loss += mask_loss
+        print_losses.append(mask_loss.item() * nTotal)
+        n_totals += nTotal
+    return loss, n_totals, print_losses
 
 
 ######################################################################
