@@ -734,8 +734,8 @@ def maskNLLLoss(inp, target, mask):
 #
 
 
-def train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, embedding,
-          encoder_optimizer, decoder_optimizer, batch_size, clip, max_length=MAX_LENGTH):
+def train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer, decoder_optimizer,
+          batch_size, clip, max_length=MAX_LENGTH):
 
     # Zero gradients
     encoder_optimizer.zero_grad()
@@ -797,8 +797,8 @@ def trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optim
         input_variable, lengths, target_variable, mask, max_target_len = training_batch
 
         # Run a training iteration with batch
-        loss = train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq,
-                     embedding, encoder_optimizer, decoder_optimizer, batch_size, clip)
+        loss = train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer,
+                     decoder_optimizer, batch_size, clip)
         print_loss += loss
 
         # Print progress
@@ -861,35 +861,34 @@ def trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optim
 #    6) Return collections of word tokens and scores.
 #
 
-class GreedySearchDecoder(nn.Module):
-    def __init__(self, encoder, decoder):
-        super(GreedySearchDecoder, self).__init__()
-        self.encoder = encoder
-        self.decoder = decoder
+class SearchDecoder(nn.Module):
+    def __init__(self, seq2seq):
+        super(SearchDecoder, self).__init__()
+        self.seq2seq = seq2seq
 
     def forward(self, input_seq, input_length, max_length):
         # Forward input through encoder model
-        encoder_outputs, encoder_hidden = self.encoder(input_seq, input_length)
+        encoder_outputs, encoder_hidden = self.seq2seq.encoder(input_seq, input_length)
         # Prepare encoder's final hidden layer to be first hidden input to the decoder
         decoder_hidden = encoder_hidden[:decoder.num_layers]
         # Initialize decoder input with SOS_token
         decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_token
         # Initialize tensors to append decoded words to
-        all_tokens = torch.zeros([0], device=device, dtype=torch.long)
-        all_scores = torch.zeros([0], device=device)
+        tokens = torch.zeros([0], device=device, dtype=torch.long)
+        scores = torch.zeros([0], device=device)
         # Iteratively decode one word token at a time
         for _ in range(max_length):
             # Forward pass through decoder
-            decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden, encoder_outputs)
+            decoder_output, decoder_hidden = self.seq2seq.decoder(decoder_input, decoder_hidden, encoder_outputs)
             # Obtain most likely word token and its softmax score
             decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
             # Record token and score
-            all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
-            all_scores = torch.cat((all_scores, decoder_scores), dim=0)
+            tokens = torch.cat((tokens, decoder_input), dim=0)
+            scores = torch.cat((scores, decoder_scores), dim=0)
             # Prepare current token to be next decoder input (add a dimension)
             decoder_input = torch.unsqueeze(decoder_input, 0)
         # Return collections of word tokens and scores
-        return all_tokens, all_scores
+        return tokens, scores
 
 
 ######################################################################
@@ -922,10 +921,10 @@ class GreedySearchDecoder(nn.Module):
 # and prompting the user to enter another sentence.
 #
 
-def evaluate(encoder, decoder, searcher, voc, sentence, max_length=MAX_LENGTH):
+def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
     ### Format input sentence as a batch
     # words -> indexes
-    indexes_batch = [indexesFromSentence(voc, sentence)]
+    indexes_batch = [indexesFromSentence(vocab, sentence)]
     # Create lengths tensor
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
     # Transpose dimensions of batch to match models' expectations
@@ -936,11 +935,11 @@ def evaluate(encoder, decoder, searcher, voc, sentence, max_length=MAX_LENGTH):
     # Decode sentence with searcher
     tokens, scores = searcher(input_batch, lengths, max_length)
     # indexes -> words
-    decoded_words = [voc.index2word[token.item()] for token in tokens]
+    decoded_words = [vocab.index2word[token.item()] for token in tokens]
     return decoded_words
 
 
-def evaluateInput(encoder, decoder, searcher, voc):
+def evaluateInput(searcher, vocab):
     input_sentence = ''
     while(1):
         try:
@@ -951,7 +950,7 @@ def evaluateInput(encoder, decoder, searcher, voc):
             # Normalize sentence
             input_sentence = normalizeString(input_sentence)
             # Evaluate sentence
-            output_words = evaluate(encoder, decoder, searcher, voc, input_sentence)
+            output_words = evaluate(searcher, vocab, input_sentence)
             # Format and print response sentence
             output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
             print('Bot:', ' '.join(output_words))
@@ -1070,10 +1069,10 @@ encoder.eval()
 decoder.eval()
 
 # Initialize search module
-searcher = GreedySearchDecoder(encoder, decoder)
+searcher = SearchDecoder(seq2seq)
 
 # Begin chatting (uncomment and run the following line to begin)
-evaluateInput(encoder, decoder, searcher, voc)
+evaluateInput(searcher, voc)
 
 
 ######################################################################
