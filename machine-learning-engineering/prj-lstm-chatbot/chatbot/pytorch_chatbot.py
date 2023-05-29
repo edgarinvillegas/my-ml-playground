@@ -641,7 +641,7 @@ class Seq2Seq(nn.Module):
                 decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
                 decoder_input = decoder_input.to(device)
             # Calculate and accumulate loss
-            mask_loss, nTotal = maskNLLLoss(decoder_output, trg[t], mask[t])
+            mask_loss, nTotal = mask_NLLLoss(decoder_output, trg[t], mask[t])
             loss += mask_loss
             print_losses.append(mask_loss.item() * nTotal)
             n_totals += nTotal
@@ -664,7 +664,7 @@ class Seq2Seq(nn.Module):
 # mask tensor.
 #
 
-def maskNLLLoss(inp, target, mask):
+def mask_NLLLoss(inp, target, mask):
     nTotal = mask.sum()
     crossEntropy = -torch.log(torch.gather(inp, 1, target.view(-1, 1)).squeeze(1))
     loss = crossEntropy.masked_select(mask).mean()
@@ -734,8 +734,8 @@ def maskNLLLoss(inp, target, mask):
 #
 
 
-def train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer, decoder_optimizer,
-          batch_size, clip, max_length=MAX_LENGTH):
+def train_step(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer, decoder_optimizer,
+               batch_size, clip, max_length=MAX_LENGTH):
 
     # Zero gradients
     encoder_optimizer.zero_grad()
@@ -755,7 +755,8 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, seq2se
     encoder_optimizer.step()
     decoder_optimizer.step()
 
-    return sum(print_losses) / n_totals
+    avg_loss = sum(print_losses) / n_totals
+    return avg_loss
 
 
 ######################################################################
@@ -776,7 +777,7 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, seq2se
 # to run inference, or we can continue training right where we left off.
 #
 
-def trainIters(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
     # Load batches for each iteration
     training_batches = [batch2TrainData(vocab, [random.choice(pairs) for _ in range(batch_size)])
@@ -797,8 +798,8 @@ def trainIters(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_opt
         input_variable, lengths, target_variable, mask, max_target_len = training_batch
 
         # Run a training iteration with batch
-        loss = train(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer,
-                     decoder_optimizer, batch_size, clip)
+        loss = train_step(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer,
+                          decoder_optimizer, batch_size, clip)
         print_loss += loss
 
         # Print progress
@@ -1052,7 +1053,7 @@ if loadFilename:
 
 # Run training iterations
 print("Starting Training!")
-trainIters(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
+train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
            embedding, save_dir, n_iteration, batch_size,
            print_every, save_every, clip, dataset_name, loadFilename)
 
