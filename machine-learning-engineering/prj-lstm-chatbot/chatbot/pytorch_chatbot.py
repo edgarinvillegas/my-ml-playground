@@ -161,7 +161,7 @@ PAD_token = 0  # Used for padding short sentences
 SOS_token = 1  # Start-of-sentence token
 EOS_token = 2  # End-of-sentence token
 
-class Voc:
+class Vocab:
     def __init__(self, name):
         self.name = name
         self.trimmed = False
@@ -248,8 +248,8 @@ def readVocs(datafile, corpus_name):
         read().strip().split('\n')
     # Split every line into pairs and normalize
     pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
-    voc = Voc(corpus_name)
-    return voc, pairs
+    vocab = Vocab(corpus_name)
+    return vocab, pairs
 
 # Returns True iff both sentences in a pair 'p' are under the MAX_LENGTH threshold
 def filterPair(p):
@@ -263,21 +263,21 @@ def filterPairs(pairs):
 # Using the functions defined above, return a populated voc object and pairs list
 def loadPrepareData(corpus, corpus_name, datafile, save_dir):
     print("Start preparing training data ...")
-    voc, pairs = readVocs(datafile, corpus_name)
+    vocab, pairs = readVocs(datafile, corpus_name)
     print("Read {!s} sentence pairs".format(len(pairs)))
     pairs = filterPairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
     print("Counting words...")
     for pair in pairs:
-        voc.addSentence(pair[0])
-        voc.addSentence(pair[1])
-    print("Counted words:", voc.num_words)
-    return voc, pairs
+        vocab.addSentence(pair[0])
+        vocab.addSentence(pair[1])
+    print("Counted words:", vocab.num_words)
+    return vocab, pairs
 
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-voc, pairs = loadPrepareData(dataset_path, dataset_name, datafile, save_dir)
+vocab, pairs = loadPrepareData(dataset_path, dataset_name, datafile, save_dir)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
@@ -299,9 +299,9 @@ for pair in pairs[:10]:
 
 MIN_COUNT = 3    # Minimum word count threshold for trimming
 
-def trimRareWords(voc, pairs, MIN_COUNT):
+def trimRareWords(vocab, pairs, MIN_COUNT):
     # Trim words used under the MIN_COUNT from the voc
-    voc.trim(MIN_COUNT)
+    vocab.trim(MIN_COUNT)
     # Filter out pairs with trimmed words
     keep_pairs = []
     for pair in pairs:
@@ -311,12 +311,12 @@ def trimRareWords(voc, pairs, MIN_COUNT):
         keep_output = True
         # Check input sentence
         for word in input_sentence.split(' '):
-            if word not in voc.word2index:
+            if word not in vocab.word2index:
                 keep_input = False
                 break
         # Check output sentence
         for word in output_sentence.split(' '):
-            if word not in voc.word2index:
+            if word not in vocab.word2index:
                 keep_output = False
                 break
 
@@ -329,7 +329,7 @@ def trimRareWords(voc, pairs, MIN_COUNT):
 
 
 # Trim voc and pairs
-pairs = trimRareWords(voc, pairs, MIN_COUNT)
+pairs = trimRareWords(vocab, pairs, MIN_COUNT)
 
 
 ######################################################################
@@ -385,8 +385,8 @@ pairs = trimRareWords(voc, pairs, MIN_COUNT)
 # and target tensors using the aforementioned functions.
 #
 
-def indexesFromSentence(voc, sentence):
-    return [voc.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+def indexesFromSentence(vocab, sentence):
+    return [vocab.word2index[word] for word in sentence.split(' ')] + [EOS_token]
 
 
 def zeroPadding(l, fillvalue=PAD_token):
@@ -404,16 +404,16 @@ def binaryMatrix(l, value=PAD_token):
     return m
 
 # Returns padded input sequence tensor and lengths
-def inputVar(l, voc):
-    indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
+def inputVar(l, vocab):
+    indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
     padVar = torch.LongTensor(padList)
     return padVar, lengths
 
 # Returns padded target sequence tensor, padding mask, and max target length
-def outputVar(l, voc):
-    indexes_batch = [indexesFromSentence(voc, sentence) for sentence in l]
+def outputVar(l, vocab):
+    indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
     max_target_len = max([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
     mask = binaryMatrix(padList)
@@ -422,20 +422,20 @@ def outputVar(l, voc):
     return padVar, mask, max_target_len
 
 # Returns all items for a given batch of pairs
-def batch2TrainData(voc, pair_batch):
+def batch2TrainData(vocab, pair_batch):
     pair_batch.sort(key=lambda x: len(x[0].split(" ")), reverse=True)
     input_batch, output_batch = [], []
     for pair in pair_batch:
         input_batch.append(pair[0])
         output_batch.append(pair[1])
-    inp, lengths = inputVar(input_batch, voc)
-    output, mask, max_target_len = outputVar(output_batch, voc)
+    inp, lengths = inputVar(input_batch, vocab)
+    output, mask, max_target_len = outputVar(output_batch, vocab)
     return inp, lengths, output, mask, max_target_len
 
 
 # Example for validation
 small_batch_size = 5
-batches = batch2TrainData(voc, [random.choice(pairs) for _ in range(small_batch_size)])
+batches = batch2TrainData(vocab, [random.choice(pairs) for _ in range(small_batch_size)])
 input_variable, lengths, target_variable, mask, max_target_len = batches
 
 print("input_variable:", input_variable)
@@ -776,10 +776,10 @@ def train(input_variable, lengths, target_variable, mask, max_target_len, seq2se
 # to run inference, or we can continue training right where we left off.
 #
 
-def trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def trainIters(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
     # Load batches for each iteration
-    training_batches = [batch2TrainData(voc, [random.choice(pairs) for _ in range(batch_size)])
+    training_batches = [batch2TrainData(vocab, [random.choice(pairs) for _ in range(batch_size)])
                       for _ in range(n_iteration)]
 
     # Initializations
@@ -819,7 +819,7 @@ def trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optim
                 'en_opt': encoder_optimizer.state_dict(),
                 'de_opt': decoder_optimizer.state_dict(),
                 'loss': loss,
-                'voc_dict': voc.__dict__,
+                'voc_dict': vocab.__dict__,
                 'embedding': embedding.state_dict()
             }, os.path.join(directory, '{}_{}.tar'.format(iteration, 'checkpoint')))
 
@@ -997,16 +997,16 @@ if loadFilename:
     encoder_optimizer_sd = checkpoint['en_opt']
     decoder_optimizer_sd = checkpoint['de_opt']
     embedding_sd = checkpoint['embedding']
-    voc.__dict__ = checkpoint['voc_dict']
+    vocab.__dict__ = checkpoint['voc_dict']
 
 
 print('Building encoder and decoder ...')
 # Initialize word embeddings
-embedding = nn.Embedding(voc.num_words, hidden_size)
+embedding = nn.Embedding(vocab.num_words, hidden_size)
 if loadFilename:
     embedding.load_state_dict(embedding_sd)
 # Initialize encoder & decoder models
-seq2seq = Seq2Seq(hidden_size, hidden_size, voc.num_words, embedding)
+seq2seq = Seq2Seq(hidden_size, hidden_size, vocab.num_words, embedding)
 encoder = seq2seq.encoder
 decoder = seq2seq.decoder
 if loadFilename:
@@ -1052,7 +1052,7 @@ if loadFilename:
 
 # Run training iterations
 print("Starting Training!")
-trainIters(model_name, voc, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
+trainIters(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
            embedding, save_dir, n_iteration, batch_size,
            print_every, save_every, clip, dataset_name, loadFilename)
 
@@ -1072,7 +1072,7 @@ decoder.eval()
 searcher = SearchDecoder(seq2seq)
 
 # Begin chatting (uncomment and run the following line to begin)
-evaluateInput(searcher, voc)
+evaluateInput(searcher, vocab)
 
 
 ######################################################################
