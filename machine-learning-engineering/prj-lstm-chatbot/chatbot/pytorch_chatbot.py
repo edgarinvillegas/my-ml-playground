@@ -404,7 +404,7 @@ def binaryMatrix(l, value=PAD_token):
     return m
 
 # Returns padded input sequence tensor and lengths
-def inputVar(l, vocab):
+def prepare_input(l, vocab):
     indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
@@ -412,7 +412,7 @@ def inputVar(l, vocab):
     return padVar, lengths
 
 # Returns padded target sequence tensor, padding mask, and max target length
-def outputVar(l, vocab):
+def prepare_output(l, vocab):
     indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
     max_target_len = max([len(indexes) for indexes in indexes_batch])
     padList = zeroPadding(indexes_batch)
@@ -428,8 +428,8 @@ def batch2TrainData(vocab, pair_batch):
     for pair in pair_batch:
         input_batch.append(pair[0])
         output_batch.append(pair[1])
-    inp, lengths = inputVar(input_batch, vocab)
-    output, mask, max_target_len = outputVar(output_batch, vocab)
+    inp, lengths = prepare_input(input_batch, vocab)
+    output, mask, max_target_len = prepare_output(output_batch, vocab)
     return inp, lengths, output, mask, max_target_len
 
 
