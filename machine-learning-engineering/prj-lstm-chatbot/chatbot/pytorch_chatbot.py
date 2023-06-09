@@ -48,22 +48,6 @@ def extract_questions_answers(dataset):
     return pairs
 
 data_folder = "data"
-datafile = os.path.join(data_folder, "formatted_lines.txt")
-
-delimiter = '\t'
-# Unescape the delimiter
-delimiter = str(codecs.decode(delimiter, "unicode_escape"))
-
-# Write new csv file
-print("\nWriting newly formatted file...")
-with open(datafile, 'w', encoding='utf-8') as outputfile:
-    writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
-    for pair in extract_questions_answers(train_dataset):
-        writer.writerow(pair)
-
-# Print a sample of lines
-print("\nSample lines from file:")
-print_lines(datafile)
 
 
 MAX_LENGTH = 10  # Maximum sentence length to consider
@@ -184,12 +168,10 @@ def normalize_string(s):
 
 
 # Read question/answer pairs and return a Vocab object
-def read_vocabs(datafile):
-    # split file into lines
-    lines = open(datafile, encoding='utf-8').\
-        read().strip().split('\n')
+def read_vocabs(dataset):
+    raw_pairs = extract_questions_answers(dataset)
     # Split lines into qa pairs and normalize
-    pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
+    pairs = [[normalize_string(s) for s in l] for l in raw_pairs]
     vocab = Vocab()
     return vocab, pairs
 
@@ -202,9 +184,9 @@ def filter_pair(p):
 def filter_pairs(pairs):
     return [pair for pair in pairs if filter_pair(pair)]
 
-def load_prepare_data(datafile):
+def load_prepare_data(dataset):
     print("Start preparing training data ...")
-    vocab, pairs = read_vocabs(datafile)
+    vocab, pairs = read_vocabs(dataset)
     print("Read {!s} sentence pairs".format(len(pairs)))
     pairs = filter_pairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
@@ -217,16 +199,11 @@ def load_prepare_data(datafile):
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-vocab, pairs = load_prepare_data(datafile)
+vocab, pairs = load_prepare_data(train_dataset)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
     print(pair)
-
-
-# Print a sample of lines
-print("\nSample lines from file:")
-print_lines(datafile)
 
 
 ######################################################################
