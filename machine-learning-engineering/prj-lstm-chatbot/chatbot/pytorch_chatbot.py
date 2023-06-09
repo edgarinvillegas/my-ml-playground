@@ -18,12 +18,11 @@ from io import open
 import itertools
 
 
-USE_GPU = torch.cuda.is_available()
-device = torch.device("cuda" if USE_GPU else "cpu")
-
 dataset_name = "squad"
 dataset_path = os.path.join("data", dataset_name)
 
+USE_GPU = torch.cuda.is_available()
+device = torch.device("cuda" if USE_GPU else "cpu")
 
 ####################
 from torchtext.datasets import SQuAD2
@@ -31,19 +30,13 @@ from torchtext.datasets import SQuAD2
 train_dataset = SQuAD2(split='dev')
 train_iter = iter(train_dataset)
 
-row = next(train_iter)
-question = row[1]
-answer = row[2][0]
-print('Question: ', question)
-print('Answer: ', answer)
-
-def printLines(file, n=10):
+def print_lines(file, n=10):
     with open(file, 'rb') as datafile:
         lines = datafile.readlines()
         for line in lines[:n]:
             print(line)
 
-def extractSentencePairs(dataset):
+def extract_questions_answers(dataset):
     data_iter = iter(dataset)
     pairs = []
     row = next(data_iter, None)
@@ -65,36 +58,35 @@ delimiter = str(codecs.decode(delimiter, "unicode_escape"))
 print("\nWriting newly formatted file...")
 with open(datafile, 'w', encoding='utf-8') as outputfile:
     writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
-    for pair in extractSentencePairs(train_dataset):
+    for pair in extract_questions_answers(train_dataset):
         writer.writerow(pair)
 
 # Print a sample of lines
 print("\nSample lines from file:")
-printLines(datafile)
+print_lines(datafile)
 
 
 MAX_LENGTH = 10  # Maximum sentence length to consider
 
-# Turn a Unicode string to plain ASCII, thanks to
-# https://stackoverflow.com/a/518232/2809427
-def unicodeToAscii(s):
+# Thanks to https://stackoverflow.com/a/518232/2809427
+def unicode_to_ascii(s):
     return ''.join(
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     )
 
 # Lowercase, trim, and remove non-letter characters
-def normalizeString(s):
-    s = unicodeToAscii(s.lower().strip())
+def normalize_string(s):
+    s = unicode_to_ascii(s.lower().strip())
     s = re.sub(r"([.!?])", r" \1", s)
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     s = re.sub(r"\s+", r" ", s).strip()
     return s
 
 # Default word tokens
-PAD_token = 0  # Used for padding short sentences
-SOS_token = 1  # Start-of-sentence token
-EOS_token = 2  # End-of-sentence token
+PAD_token = 0
+SOS_token = 1
+EOS_token = 2
 
 class Vocab:
     def __init__(self, name):
@@ -105,11 +97,11 @@ class Vocab:
         self.index2word = {PAD_token: "PAD", SOS_token: "SOS", EOS_token: "EOS"}
         self.num_words = 3  # Count SOS, EOS, PAD
 
-    def addSentence(self, sentence):
-        for word in sentence.split(' '):
-            self.addWord(word)
+    def add_qa(self, qa):
+        for word in qa.split(' '):
+            self.add_word(word)
 
-    def addWord(self, word):
+    def add_word(self, word):
         if word not in self.word2index:
             self.word2index[word] = self.num_words
             self.word2count[word] = 1
@@ -118,17 +110,13 @@ class Vocab:
         else:
             self.word2count[word] += 1
 
-    # Remove words below a certain count threshold
+    # Remove too frequent words
     def trim(self, min_count):
         if self.trimmed:
             return
         self.trimmed = True
 
-        keep_words = []
-
-        for k, v in self.word2count.items():
-            if v >= min_count:
-                keep_words.append(k)
+        keep_words = [k for k, v in self.word2count.items() if v >= min_count]
 
         print('keep_words {} / {} = {:.4f}'.format(
             len(keep_words), len(self.word2index), len(keep_words) / len(self.word2index)
@@ -141,46 +129,43 @@ class Vocab:
         self.num_words = 3 # Count default tokens
 
         for word in keep_words:
-            self.addWord(word)
+            self.add_word(word)
 
-
-# Read query/response pairs and return a voc object
-def readVocs(datafile, corpus_name):
-    print("Reading lines...")
-    # Read the file and split into lines
+# Read question/answer pairs and return a Vocab object
+def read_vocabs(datafile, corpus_name):
+    # split file into lines
     lines = open(datafile, encoding='utf-8').\
         read().strip().split('\n')
-    # Split every line into pairs and normalize
-    pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
-    voc = Vocab(corpus_name)
-    return voc, pairs
+    # Split lines into qa pairs and normalize
+    pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
+    vocab = Vocab(corpus_name)
+    return vocab, pairs
 
-# Returns True iff both sentences in a pair 'p' are under the MAX_LENGTH threshold
-def filterPair(p):
+# Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
+def filter_pair(p):
     # Input sequences need to preserve the last word for EOS token
     return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
 
-# Filter pairs using filterPair condition
-def filterPairs(pairs):
-    return [pair for pair in pairs if filterPair(pair)]
+# Filter qa pairs using filter_pair predicate
+def filter_pairs(pairs):
+    return [pair for pair in pairs if filter_pair(pair)]
 
-# Using the functions defined above, return a populated voc object and pairs list
-def loadPrepareData(corpus, corpus_name, datafile, save_dir):
+def load_prepare_data(corpus_name, datafile):
     print("Start preparing training data ...")
-    voc, pairs = readVocs(datafile, corpus_name)
+    vocab, pairs = read_vocabs(datafile, corpus_name)
     print("Read {!s} sentence pairs".format(len(pairs)))
-    pairs = filterPairs(pairs)
+    pairs = filter_pairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
     print("Counting words...")
     for pair in pairs:
-        voc.addSentence(pair[0])
-        voc.addSentence(pair[1])
-    print("Counted words:", voc.num_words)
-    return voc, pairs
+        vocab.add_qa(pair[0])
+        vocab.add_qa(pair[1])
+    print("Counted words:", vocab.num_words)
+    return vocab, pairs
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-voc, pairs = loadPrepareData(data_folder, dataset_name, datafile, save_dir)
+vocab, pairs = load_prepare_data(dataset_name, datafile)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
@@ -189,7 +174,7 @@ for pair in pairs[:10]:
 
 # Print a sample of lines
 print("\nSample lines from file:")
-printLines(datafile)
+print_lines(datafile)
 
 
 ######################################################################
@@ -230,58 +215,58 @@ MAX_LENGTH = 10  # Maximum sentence length to consider
 
 # Turn a Unicode string to plain ASCII, thanks to
 # https://stackoverflow.com/a/518232/2809427
-def unicodeToAscii(s):
+def unicode_to_ascii(s):
     return ''.join(
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     )
 
 # Lowercase, trim, and remove non-letter characters
-def normalizeString(s):
-    s = unicodeToAscii(s.lower().strip())
+def normalize_string(s):
+    s = unicode_to_ascii(s.lower().strip())
     s = re.sub(r"([.!?])", r" \1", s)
     s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
     s = re.sub(r"\s+", r" ", s).strip()
     return s
 
 # Read query/response pairs and return a voc object
-def readVocs(datafile, corpus_name):
+def read_vocabs(datafile, corpus_name):
     print("Reading lines...")
     # Read the file and split into lines
     lines = open(datafile, encoding='utf-8').\
         read().strip().split('\n')
     # Split every line into pairs and normalize
-    pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
+    pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
     vocab = Vocab(corpus_name)
     return vocab, pairs
 
 # Returns True iff both sentences in a pair 'p' are under the MAX_LENGTH threshold
-def filterPair(p):
+def filter_pair(p):
     # Input sequences need to preserve the last word for EOS token
     return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
 
 # Filter pairs using filterPair condition
-def filterPairs(pairs):
-    return [pair for pair in pairs if filterPair(pair)]
+def filter_pairs(pairs):
+    return [pair for pair in pairs if filter_pair(pair)]
 
 # Using the functions defined above, return a populated voc object and pairs list
-def loadPrepareData(corpus, corpus_name, datafile, save_dir):
+def load_prepare_data(corpus_name, datafile):
     print("Start preparing training data ...")
-    vocab, pairs = readVocs(datafile, corpus_name)
+    vocab, pairs = read_vocabs(datafile, corpus_name)
     print("Read {!s} sentence pairs".format(len(pairs)))
-    pairs = filterPairs(pairs)
+    pairs = filter_pairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
     print("Counting words...")
     for pair in pairs:
-        vocab.addSentence(pair[0])
-        vocab.addSentence(pair[1])
+        vocab.add_qa(pair[0])
+        vocab.add_qa(pair[1])
     print("Counted words:", vocab.num_words)
     return vocab, pairs
 
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-vocab, pairs = loadPrepareData(dataset_path, dataset_name, datafile, save_dir)
+vocab, pairs = load_prepare_data(dataset_name, datafile)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
@@ -303,7 +288,7 @@ for pair in pairs[:10]:
 
 MIN_COUNT = 3    # Minimum word count threshold for trimming
 
-def trimRareWords(vocab, pairs, MIN_COUNT):
+def trim_unfrequent_words(vocab, pairs, MIN_COUNT):
     # Trim words used under the MIN_COUNT from the voc
     vocab.trim(MIN_COUNT)
     # Filter out pairs with trimmed words
@@ -333,7 +318,7 @@ def trimRareWords(vocab, pairs, MIN_COUNT):
 
 
 # Trim voc and pairs
-pairs = trimRareWords(vocab, pairs, MIN_COUNT)
+pairs = trim_unfrequent_words(vocab, pairs, MIN_COUNT)
 
 
 ######################################################################
@@ -389,14 +374,14 @@ pairs = trimRareWords(vocab, pairs, MIN_COUNT)
 # and target tensors using the aforementioned functions.
 #
 
-def indexesFromSentence(vocab, sentence):
+def get_indexes_from_sentence(vocab, sentence):
     return [vocab.word2index[word] for word in sentence.split(' ')] + [EOS_token]
 
 
-def zeroPadding(l, fillvalue=PAD_token):
+def zero_padding(l, fillvalue=PAD_token):
     return list(itertools.zip_longest(*l, fillvalue=fillvalue))
 
-def binaryMatrix(l, value=PAD_token):
+def bin_matrix(l, value=PAD_token):
     m = []
     for i, seq in enumerate(l):
         m.append([])
@@ -409,24 +394,24 @@ def binaryMatrix(l, value=PAD_token):
 
 # Returns padded input sequence tensor and lengths
 def prepare_input(l, vocab):
-    indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
+    indexes_batch = [get_indexes_from_sentence(vocab, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
-    padList = zeroPadding(indexes_batch)
+    padList = zero_padding(indexes_batch)
     padVar = torch.LongTensor(padList)
     return padVar, lengths
 
 # Returns padded target sequence tensor, padding mask, and max target length
 def prepare_output(l, vocab):
-    indexes_batch = [indexesFromSentence(vocab, sentence) for sentence in l]
+    indexes_batch = [get_indexes_from_sentence(vocab, sentence) for sentence in l]
     max_target_len = max([len(indexes) for indexes in indexes_batch])
-    padList = zeroPadding(indexes_batch)
-    mask = binaryMatrix(padList)
+    padList = zero_padding(indexes_batch)
+    mask = bin_matrix(padList)
     mask = torch.ByteTensor(mask)
     padVar = torch.LongTensor(padList)
     return padVar, mask, max_target_len
 
 # Returns all items for a given batch of pairs
-def batch2TrainData(vocab, pair_batch):
+def batch_to_train_data(vocab, pair_batch):
     pair_batch.sort(key=lambda x: len(x[0].split(" ")), reverse=True)
     input_batch, output_batch = [], []
     for pair in pair_batch:
@@ -439,7 +424,7 @@ def batch2TrainData(vocab, pair_batch):
 
 # Example for validation
 small_batch_size = 5
-batches = batch2TrainData(vocab, [random.choice(pairs) for _ in range(small_batch_size)])
+batches = batch_to_train_data(vocab, [random.choice(pairs) for _ in range(small_batch_size)])
 input_variable, lengths, target_variable, mask, max_target_len = batches
 
 print("input_variable:", input_variable)
@@ -738,8 +723,8 @@ def mask_NLLLoss(inp, target, mask):
 #
 
 
-def train_step(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer, decoder_optimizer,
-               batch_size, clip, max_length=MAX_LENGTH):
+def train_step(input_variable, lengths, target_variable, mask, max_target_len, seq2seq, encoder_optimizer,
+               decoder_optimizer, batch_size, clip):
 
     # Zero gradients
     encoder_optimizer.zero_grad()
@@ -781,11 +766,11 @@ def train_step(input_variable, lengths, target_variable, mask, max_target_len, s
 # to run inference, or we can continue training right where we left off.
 #
 
-def train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
 
     # Load batches for each iteration
-    training_batches = [batch2TrainData(vocab, [random.choice(pairs) for _ in range(batch_size)])
-                      for _ in range(n_iteration)]
+    training_batches = [batch_to_train_data(vocab, [random.choice(pairs) for _ in range(batch_size)])
+                        for _ in range(n_iteration)]
 
     # Initializations
     print('Initializing ...')
@@ -814,7 +799,7 @@ def train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_opt
 
         # Save checkpoint
         if (iteration % save_every == 0):
-            directory = os.path.join(save_dir, model_name, corpus_name, '{}'.format(hidden_size))
+            directory = os.path.join(save_dir, corpus_name, '{}'.format(hidden_size))
             if not os.path.exists(directory):
                 os.makedirs(directory)
             torch.save({
@@ -929,7 +914,7 @@ class SearchDecoder(nn.Module):
 def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
     ### Format input sentence as a batch
     # words -> indexes
-    indexes_batch = [indexesFromSentence(vocab, sentence)]
+    indexes_batch = [get_indexes_from_sentence(vocab, sentence)]
     # Create lengths tensor
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
     # Transpose dimensions of batch to match models' expectations
@@ -944,7 +929,7 @@ def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
     return decoded_words
 
 
-def evaluateInput(searcher, vocab):
+def eval_input(searcher, vocab):
     input_sentence = ''
     while(1):
         try:
@@ -953,7 +938,7 @@ def evaluateInput(searcher, vocab):
             # Check if it is quit case
             if input_sentence == 'q' or input_sentence == 'quit': break
             # Normalize sentence
-            input_sentence = normalizeString(input_sentence)
+            input_sentence = normalize_string(input_sentence)
             # Evaluate sentence
             output_words = evaluate(searcher, vocab, input_sentence)
             # Format and print response sentence
@@ -979,22 +964,21 @@ def evaluateInput(searcher, vocab):
 #
 
 # Configure models
-model_name = 'cb_model'
 hidden_size = 500
 batch_size = 64
 
 # Set checkpoint to load from; set to None if starting from scratch
 
 checkpoint_iter = 4000
-loadFilename = os.path.join(save_dir, model_name, dataset_name,
+load_filename = os.path.join(save_dir, dataset_name,
                            '{}'.format(hidden_size),
                            '{}_checkpoint.tar'.format(checkpoint_iter))
-loadFilename = None
+load_filename = None
 
 # Load model if a loadFilename is provided
-if loadFilename:
+if load_filename:
     # If loading on same machine the model was trained on
-    checkpoint = torch.load(loadFilename)
+    checkpoint = torch.load(load_filename)
     # If loading a model trained on GPU to CPU
     #checkpoint = torch.load(loadFilename, map_location=torch.device('cpu'))
     encoder_sd = checkpoint['encoder']
@@ -1008,13 +992,13 @@ if loadFilename:
 print('Building encoder and decoder ...')
 # Initialize word embeddings
 embedding = nn.Embedding(vocab.num_words, hidden_size)
-if loadFilename:
+if load_filename:
     embedding.load_state_dict(embedding_sd)
 # Initialize encoder & decoder models
 seq2seq = Seq2Seq(hidden_size, hidden_size, vocab.num_words, embedding)
 encoder = seq2seq.encoder
 decoder = seq2seq.decoder
-if loadFilename:
+if load_filename:
     encoder.load_state_dict(encoder_sd)
     decoder.load_state_dict(decoder_sd)
 # Use appropriate device
@@ -1039,7 +1023,9 @@ clip = 50.0
 teacher_forcing_ratio = 0.5
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
-n_iteration = 4000
+# n_iteration = 4000
+n_iteration = 1
+
 print_every = 1
 save_every = 500
 
@@ -1051,15 +1037,15 @@ decoder.train()
 print('Building optimizers ...')
 encoder_optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 decoder_optimizer = optim.Adam(decoder.parameters(), lr=learning_rate * decoder_learning_ratio)
-if loadFilename:
+if load_filename:
     encoder_optimizer.load_state_dict(encoder_optimizer_sd)
     decoder_optimizer.load_state_dict(decoder_optimizer_sd)
 
 # Run training iterations
 print("Starting Training!")
-train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
+train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
            embedding, save_dir, n_iteration, batch_size,
-           print_every, save_every, clip, dataset_name, loadFilename)
+           print_every, save_every, clip, dataset_name, load_filename)
 
 
 ######################################################################
@@ -1077,7 +1063,7 @@ decoder.eval()
 searcher = SearchDecoder(seq2seq)
 
 # Begin chatting (uncomment and run the following line to begin)
-evaluateInput(searcher, vocab)
+eval_input(searcher, vocab)
 
 
 ######################################################################
