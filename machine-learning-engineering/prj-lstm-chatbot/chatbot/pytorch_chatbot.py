@@ -27,7 +27,7 @@ device = torch.device("cuda" if USE_GPU else "cpu")
 ####################
 from torchtext.datasets import SQuAD2
 
-train_dataset = SQuAD2(split='dev')
+train_dataset = SQuAD2(split='train')
 train_iter = iter(train_dataset)
 
 def print_lines(file, n=10):
@@ -131,52 +131,6 @@ class Vocab:
         for word in keep_words:
             self.add_word(word)
 
-# Read question/answer pairs and return a Vocab object
-def read_vocabs(datafile, corpus_name):
-    # split file into lines
-    lines = open(datafile, encoding='utf-8').\
-        read().strip().split('\n')
-    # Split lines into qa pairs and normalize
-    pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
-    vocab = Vocab(corpus_name)
-    return vocab, pairs
-
-# Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
-def filter_pair(p):
-    # Input sequences need to preserve the last word for EOS token
-    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
-
-# Filter qa pairs using filter_pair predicate
-def filter_pairs(pairs):
-    return [pair for pair in pairs if filter_pair(pair)]
-
-def load_prepare_data(corpus_name, datafile):
-    print("Start preparing training data ...")
-    vocab, pairs = read_vocabs(datafile, corpus_name)
-    print("Read {!s} sentence pairs".format(len(pairs)))
-    pairs = filter_pairs(pairs)
-    print("Trimmed to {!s} sentence pairs".format(len(pairs)))
-    print("Counting words...")
-    for pair in pairs:
-        vocab.add_qa(pair[0])
-        vocab.add_qa(pair[1])
-    print("Counted words:", vocab.num_words)
-    return vocab, pairs
-
-# Load/Assemble voc and pairs
-save_dir = os.path.join("data", "save")
-vocab, pairs = load_prepare_data(dataset_name, datafile)
-# Print some pairs to validate
-print("\npairs:")
-for pair in pairs[:10]:
-    print(pair)
-
-
-# Print a sample of lines
-print("\nSample lines from file:")
-print_lines(datafile)
-
-
 ######################################################################
 # Load and trim data
 # ~~~~~~~~~~~~~~~~~~
@@ -229,27 +183,26 @@ def normalize_string(s):
     s = re.sub(r"\s+", r" ", s).strip()
     return s
 
-# Read query/response pairs and return a voc object
+
+# Read question/answer pairs and return a Vocab object
 def read_vocabs(datafile, corpus_name):
-    print("Reading lines...")
-    # Read the file and split into lines
+    # split file into lines
     lines = open(datafile, encoding='utf-8').\
         read().strip().split('\n')
-    # Split every line into pairs and normalize
+    # Split lines into qa pairs and normalize
     pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
     vocab = Vocab(corpus_name)
     return vocab, pairs
 
-# Returns True iff both sentences in a pair 'p' are under the MAX_LENGTH threshold
+# Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
 def filter_pair(p):
     # Input sequences need to preserve the last word for EOS token
     return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
 
-# Filter pairs using filterPair condition
+# Filter qa pairs using filter_pair predicate
 def filter_pairs(pairs):
     return [pair for pair in pairs if filter_pair(pair)]
 
-# Using the functions defined above, return a populated voc object and pairs list
 def load_prepare_data(corpus_name, datafile):
     print("Start preparing training data ...")
     vocab, pairs = read_vocabs(datafile, corpus_name)
@@ -263,7 +216,6 @@ def load_prepare_data(corpus_name, datafile):
     print("Counted words:", vocab.num_words)
     return vocab, pairs
 
-
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
 vocab, pairs = load_prepare_data(dataset_name, datafile)
@@ -271,6 +223,11 @@ vocab, pairs = load_prepare_data(dataset_name, datafile)
 print("\npairs:")
 for pair in pairs[:10]:
     print(pair)
+
+
+# Print a sample of lines
+print("\nSample lines from file:")
+print_lines(datafile)
 
 
 ######################################################################
