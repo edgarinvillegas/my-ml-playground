@@ -21,114 +21,51 @@ import itertools
 USE_GPU = torch.cuda.is_available()
 device = torch.device("cuda" if USE_GPU else "cpu")
 
-dataset_name = "cornell movie-dialogs corpus"
+dataset_name = "squad"
 dataset_path = os.path.join("data", dataset_name)
+
+
+####################
+from torchtext.datasets import SQuAD2
+
+train_dataset = SQuAD2(split='dev')
+train_iter = iter(train_dataset)
+
+row = next(train_iter)
+question = row[1]
+answer = row[2][0]
+print('Question: ', question)
+print('Answer: ', answer)
 
 def printLines(file, n=10):
     with open(file, 'rb') as datafile:
         lines = datafile.readlines()
-    for line in lines[:n]:
-        print(line)
+        for line in lines[:n]:
+            print(line)
 
-printLines(os.path.join(dataset_path, "movie_lines.txt"))
+def extractSentencePairs(dataset):
+    data_iter = iter(dataset)
+    pairs = []
+    row = next(data_iter, None)
+    while row is not None:
+        question = row[1]
+        answer = row[2][0]
+        pairs.append([question, answer])
+        row = next(data_iter, None)
+    return pairs
 
-
-######################################################################
-# Create formatted data file
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-# For convenience, we'll create a nicely formatted data file in which each line
-# contains a tab-separated *query sentence* and a *response sentence* pair.
-#
-# The following functions facilitate the parsing of the raw
-# *movie_lines.txt* data file.
-#
-# -  ``loadLines`` splits each line of the file into a dictionary of
-#    fields (lineID, characterID, movieID, character, text)
-# -  ``loadConversations`` groups fields of lines from ``loadLines`` into
-#    conversations based on *movie_conversations.txt*
-# -  ``extractSentencePairs`` extracts pairs of sentences from
-#    conversations
-#
-
-# Splits each line of the file into a dictionary of fields
-def loadLines(fileName, fields):
-    lines = {}
-    with open(fileName, 'r', encoding='iso-8859-1') as f:
-        for line in f:
-            values = line.split(" +++$+++ ")
-            # Extract fields
-            lineObj = {}
-            for i, field in enumerate(fields):
-                lineObj[field] = values[i]
-            lines[lineObj['lineID']] = lineObj
-    return lines
-
-
-# Groups fields of lines from `loadLines` into conversations based on *movie_conversations.txt*
-def loadConversations(fileName, lines, fields):
-    conversations = []
-    with open(fileName, 'r', encoding='iso-8859-1') as f:
-        for line in f:
-            values = line.split(" +++$+++ ")
-            # Extract fields
-            convObj = {}
-            for i, field in enumerate(fields):
-                convObj[field] = values[i]
-            # Convert string to list (convObj["utteranceIDs"] == "['L598485', 'L598486', ...]")
-            lineIds = eval(convObj["utteranceIDs"])
-            # Reassemble lines
-            convObj["lines"] = []
-            for lineId in lineIds:
-                convObj["lines"].append(lines[lineId])
-            conversations.append(convObj)
-    return conversations
-
-
-# Extracts pairs of sentences from conversations
-def extractSentencePairs(conversations):
-    qa_pairs = []
-    for conversation in conversations:
-        # Iterate over all the lines of the conversation
-        for i in range(len(conversation["lines"]) - 1):  # We ignore the last line (no answer for it)
-            inputLine = conversation["lines"][i]["text"].strip()
-            targetLine = conversation["lines"][i+1]["text"].strip()
-            # Filter wrong samples (if one of the lists is empty)
-            if inputLine and targetLine:
-                qa_pairs.append([inputLine, targetLine])
-    return qa_pairs
-
-
-######################################################################
-# Now we’ll call these functions and create the file. We’ll call it
-# *formatted_movie_lines.txt*.
-#
-
-# Define path to new file
-datafile = os.path.join(dataset_path, "formatted_movie_lines.txt")
+data_folder = "data"
+datafile = os.path.join(data_folder, "formatted_lines.txt")
 
 delimiter = '\t'
 # Unescape the delimiter
 delimiter = str(codecs.decode(delimiter, "unicode_escape"))
 
-# Initialize lines dict, conversations list, and field ids
-lines = {}
-conversations = []
-MOVIE_LINES_FIELDS = ["lineID", "characterID", "movieID", "character", "text"]
-MOVIE_CONVERSATIONS_FIELDS = ["character1ID", "character2ID", "movieID", "utteranceIDs"]
-
-# Load lines and process conversations
-print("\nProcessing corpus...")
-lines = loadLines(os.path.join(dataset_path, "movie_lines.txt"), MOVIE_LINES_FIELDS)
-print("\nLoading conversations...")
-conversations = loadConversations(os.path.join(dataset_path, "movie_conversations.txt"),
-                                  lines, MOVIE_CONVERSATIONS_FIELDS)
-
 # Write new csv file
 print("\nWriting newly formatted file...")
 with open(datafile, 'w', encoding='utf-8') as outputfile:
     writer = csv.writer(outputfile, delimiter=delimiter, lineterminator='\n')
-    for pair in extractSentencePairs(conversations):
+    for pair in extractSentencePairs(train_dataset):
         writer.writerow(pair)
 
 # Print a sample of lines
@@ -136,25 +73,23 @@ print("\nSample lines from file:")
 printLines(datafile)
 
 
-######################################################################
-# Load and trim data
-# ~~~~~~~~~~~~~~~~~~
-#
-# Our next order of business is to create a vocabulary and load
-# query/response sentence pairs into memory.
-#
-# Note that we are dealing with sequences of **words**, which do not have
-# an implicit mapping to a discrete numerical space. Thus, we must create
-# one by mapping each unique word that we encounter in our dataset to an
-# index value.
-#
-# For this we define a ``Voc`` class, which keeps a mapping from words to
-# indexes, a reverse mapping of indexes to words, a count of each word and
-# a total word count. The class provides methods for adding a word to the
-# vocabulary (``addWord``), adding all words in a sentence
-# (``addSentence``) and trimming infrequently seen words (``trim``). More
-# on trimming later.
-#
+MAX_LENGTH = 10  # Maximum sentence length to consider
+
+# Turn a Unicode string to plain ASCII, thanks to
+# https://stackoverflow.com/a/518232/2809427
+def unicodeToAscii(s):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+# Lowercase, trim, and remove non-letter characters
+def normalizeString(s):
+    s = unicodeToAscii(s.lower().strip())
+    s = re.sub(r"([.!?])", r" \1", s)
+    s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
+    s = re.sub(r"\s+", r" ", s).strip()
+    return s
 
 # Default word tokens
 PAD_token = 0  # Used for padding short sentences
@@ -207,6 +142,75 @@ class Vocab:
 
         for word in keep_words:
             self.addWord(word)
+
+
+# Read query/response pairs and return a voc object
+def readVocs(datafile, corpus_name):
+    print("Reading lines...")
+    # Read the file and split into lines
+    lines = open(datafile, encoding='utf-8').\
+        read().strip().split('\n')
+    # Split every line into pairs and normalize
+    pairs = [[normalizeString(s) for s in l.split('\t')] for l in lines]
+    voc = Vocab(corpus_name)
+    return voc, pairs
+
+# Returns True iff both sentences in a pair 'p' are under the MAX_LENGTH threshold
+def filterPair(p):
+    # Input sequences need to preserve the last word for EOS token
+    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
+
+# Filter pairs using filterPair condition
+def filterPairs(pairs):
+    return [pair for pair in pairs if filterPair(pair)]
+
+# Using the functions defined above, return a populated voc object and pairs list
+def loadPrepareData(corpus, corpus_name, datafile, save_dir):
+    print("Start preparing training data ...")
+    voc, pairs = readVocs(datafile, corpus_name)
+    print("Read {!s} sentence pairs".format(len(pairs)))
+    pairs = filterPairs(pairs)
+    print("Trimmed to {!s} sentence pairs".format(len(pairs)))
+    print("Counting words...")
+    for pair in pairs:
+        voc.addSentence(pair[0])
+        voc.addSentence(pair[1])
+    print("Counted words:", voc.num_words)
+    return voc, pairs
+
+# Load/Assemble voc and pairs
+save_dir = os.path.join("data", "save")
+voc, pairs = loadPrepareData(data_folder, dataset_name, datafile, save_dir)
+# Print some pairs to validate
+print("\npairs:")
+for pair in pairs[:10]:
+    print(pair)
+
+
+# Print a sample of lines
+print("\nSample lines from file:")
+printLines(datafile)
+
+
+######################################################################
+# Load and trim data
+# ~~~~~~~~~~~~~~~~~~
+#
+# Our next order of business is to create a vocabulary and load
+# query/response sentence pairs into memory.
+#
+# Note that we are dealing with sequences of **words**, which do not have
+# an implicit mapping to a discrete numerical space. Thus, we must create
+# one by mapping each unique word that we encounter in our dataset to an
+# index value.
+#
+# For this we define a ``Voc`` class, which keeps a mapping from words to
+# indexes, a reverse mapping of indexes to words, a count of each word and
+# a total word count. The class provides methods for adding a word to the
+# vocabulary (``addWord``), adding all words in a sentence
+# (``addSentence``) and trimming infrequently seen words (``trim``). More
+# on trimming later.
+#
 
 
 ######################################################################
@@ -815,12 +819,12 @@ def train_loop(model_name, vocab, pairs, seq2seq, encoder_optimizer, decoder_opt
                 os.makedirs(directory)
             torch.save({
                 'iteration': iteration,
-                'en': encoder.state_dict(),
-                'de': decoder.state_dict(),
-                'en_opt': encoder_optimizer.state_dict(),
-                'de_opt': decoder_optimizer.state_dict(),
+                'vocab_dict': vocab.__dict__,
+                'encoder': encoder.state_dict(),
+                'encoder_optimizer': encoder_optimizer.state_dict(),
+                'decoder': decoder.state_dict(),
+                'decoder_optimizer': decoder_optimizer.state_dict(),
                 'loss': loss,
-                'voc_dict': vocab.__dict__,
                 'embedding': embedding.state_dict()
             }, os.path.join(directory, '{}_{}.tar'.format(iteration, 'checkpoint')))
 
@@ -993,12 +997,12 @@ if loadFilename:
     checkpoint = torch.load(loadFilename)
     # If loading a model trained on GPU to CPU
     #checkpoint = torch.load(loadFilename, map_location=torch.device('cpu'))
-    encoder_sd = checkpoint['en']
-    decoder_sd = checkpoint['de']
-    encoder_optimizer_sd = checkpoint['en_opt']
-    decoder_optimizer_sd = checkpoint['de_opt']
+    encoder_sd = checkpoint['encoder']
+    decoder_sd = checkpoint['decoder']
+    encoder_optimizer_sd = checkpoint['encoder_optimizer']
+    decoder_optimizer_sd = checkpoint['decoder_optimizer']
     embedding_sd = checkpoint['embedding']
-    vocab.__dict__ = checkpoint['voc_dict']
+    vocab.__dict__ = checkpoint['vocab_dict']
 
 
 print('Building encoder and decoder ...')
