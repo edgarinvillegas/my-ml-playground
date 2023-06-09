@@ -89,8 +89,7 @@ SOS_token = 1
 EOS_token = 2
 
 class Vocab:
-    def __init__(self, name):
-        self.name = name
+    def __init__(self):
         self.trimmed = False
         self.word2index = {}
         self.word2count = {}
@@ -185,13 +184,13 @@ def normalize_string(s):
 
 
 # Read question/answer pairs and return a Vocab object
-def read_vocabs(datafile, corpus_name):
+def read_vocabs(datafile):
     # split file into lines
     lines = open(datafile, encoding='utf-8').\
         read().strip().split('\n')
     # Split lines into qa pairs and normalize
     pairs = [[normalize_string(s) for s in l.split('\t')] for l in lines]
-    vocab = Vocab(corpus_name)
+    vocab = Vocab()
     return vocab, pairs
 
 # Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
@@ -203,9 +202,9 @@ def filter_pair(p):
 def filter_pairs(pairs):
     return [pair for pair in pairs if filter_pair(pair)]
 
-def load_prepare_data(corpus_name, datafile):
+def load_prepare_data(datafile):
     print("Start preparing training data ...")
-    vocab, pairs = read_vocabs(datafile, corpus_name)
+    vocab, pairs = read_vocabs(datafile)
     print("Read {!s} sentence pairs".format(len(pairs)))
     pairs = filter_pairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
@@ -218,7 +217,7 @@ def load_prepare_data(corpus_name, datafile):
 
 # Load/Assemble voc and pairs
 save_dir = os.path.join("data", "save")
-vocab, pairs = load_prepare_data(dataset_name, datafile)
+vocab, pairs = load_prepare_data(datafile)
 # Print some pairs to validate
 print("\npairs:")
 for pair in pairs[:10]:
@@ -723,7 +722,8 @@ def train_step(input_variable, lengths, target_variable, mask, max_target_len, s
 # to run inference, or we can continue training right where we left off.
 #
 
-def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size, print_every, save_every, clip, corpus_name, loadFilename):
+def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration,
+               batch_size, print_every, save_every, clip, loadFilename):
 
     # Load batches for each iteration
     training_batches = [batch_to_train_data(vocab, [random.choice(pairs) for _ in range(batch_size)])
@@ -756,7 +756,7 @@ def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embe
 
         # Save checkpoint
         if (iteration % save_every == 0):
-            directory = os.path.join(save_dir, corpus_name, '{}'.format(hidden_size))
+            directory = os.path.join(save_dir, '{}'.format(hidden_size))
             if not os.path.exists(directory):
                 os.makedirs(directory)
             torch.save({
@@ -1000,9 +1000,8 @@ if load_filename:
 
 # Run training iterations
 print("Starting Training!")
-train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer,
-           embedding, save_dir, n_iteration, batch_size,
-           print_every, save_every, clip, dataset_name, load_filename)
+train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size,
+           print_every, save_every, clip, load_filename)
 
 
 ######################################################################
