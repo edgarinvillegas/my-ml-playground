@@ -8,12 +8,10 @@ import torch
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
-import csv
 import random
 import re
 import os
 import unicodedata
-import codecs
 from io import open
 import itertools
 
@@ -47,8 +45,7 @@ def extract_questions_answers(dataset):
         row = next(data_iter, None)
     return pairs
 
-data_folder = "data"
-
+data_folder = "save"
 
 MAX_LENGTH = 10  # Maximum sentence length to consider
 
@@ -68,16 +65,16 @@ def normalize_string(s):
     return s
 
 # Default word tokens
-PAD_token = 0
-SOS_token = 1
-EOS_token = 2
+PAD_TOKEN = 0
+SOS_TOKEN = 1
+EOS_TOKEN = 2
 
 class Vocab:
     def __init__(self):
         self.trimmed = False
         self.word2index = {}
         self.word2count = {}
-        self.index2word = {PAD_token: "PAD", SOS_token: "SOS", EOS_token: "EOS"}
+        self.index2word = {PAD_TOKEN: "PAD", SOS_TOKEN: "SOS", EOS_TOKEN: "EOS"}
         self.num_words = 3  # Count SOS, EOS, PAD
 
     def add_qa(self, qa):
@@ -108,8 +105,8 @@ class Vocab:
         # Reinitialize dictionaries
         self.word2index = {}
         self.word2count = {}
-        self.index2word = {PAD_token: "PAD", SOS_token: "SOS", EOS_token: "EOS"}
-        self.num_words = 3 # Count default tokens
+        self.index2word = {PAD_TOKEN: "PAD", SOS_TOKEN: "SOS", EOS_TOKEN: "EOS"}
+        self.num_words = 3 # Default tokens
 
         for word in keep_words:
             self.add_word(word)
@@ -308,18 +305,18 @@ pairs = trim_unfrequent_words(vocab, pairs, MIN_COUNT)
 #
 
 def get_indexes_from_sentence(vocab, sentence):
-    return [vocab.word2index[word] for word in sentence.split(' ')] + [EOS_token]
+    return [vocab.word2index[word] for word in sentence.split(' ')] + [EOS_TOKEN]
 
 
-def zero_padding(l, fillvalue=PAD_token):
+def zero_pad(l, fillvalue=PAD_TOKEN):
     return list(itertools.zip_longest(*l, fillvalue=fillvalue))
 
-def bin_matrix(l, value=PAD_token):
+def bin_matrix(l):
     m = []
     for i, seq in enumerate(l):
         m.append([])
         for token in seq:
-            if token == PAD_token:
+            if token == PAD_TOKEN:
                 m[i].append(0)
             else:
                 m[i].append(1)
@@ -329,7 +326,7 @@ def bin_matrix(l, value=PAD_token):
 def prepare_input(l, vocab):
     indexes_batch = [get_indexes_from_sentence(vocab, sentence) for sentence in l]
     lengths = torch.tensor([len(indexes) for indexes in indexes_batch])
-    padList = zero_padding(indexes_batch)
+    padList = zero_pad(indexes_batch)
     padVar = torch.LongTensor(padList)
     return padVar, lengths
 
@@ -337,7 +334,7 @@ def prepare_input(l, vocab):
 def prepare_output(l, vocab):
     indexes_batch = [get_indexes_from_sentence(vocab, sentence) for sentence in l]
     max_target_len = max([len(indexes) for indexes in indexes_batch])
-    padList = zero_padding(indexes_batch)
+    padList = zero_pad(indexes_batch)
     mask = bin_matrix(padList)
     mask = torch.ByteTensor(mask)
     padVar = torch.LongTensor(padList)
@@ -542,7 +539,7 @@ class Seq2Seq(nn.Module):
         # Forward pass through encoder
         encoder_outputs, encoder_hidden = self.encoder(src, lengths)
         # Create initial decoder input (start with SOS tokens for each sentence)
-        decoder_input = torch.LongTensor([[SOS_token for _ in range(batch_size)]])
+        decoder_input = torch.LongTensor([[SOS_TOKEN for _ in range(batch_size)]])
         decoder_input = decoder_input.to(device)
         # Set initial decoder hidden state to the encoder's final hidden state
         decoder_hidden = encoder_hidden[:self.decoder.num_layers]
@@ -796,7 +793,7 @@ class SearchDecoder(nn.Module):
         # Prepare encoder's final hidden layer to be first hidden input to the decoder
         decoder_hidden = encoder_hidden[:decoder.num_layers]
         # Initialize decoder input with SOS_token
-        decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_token
+        decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_TOKEN
         # Initialize tensors to append decoded words to
         tokens = torch.zeros([0], device=device, dtype=torch.long)
         scores = torch.zeros([0], device=device)
@@ -864,11 +861,10 @@ def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
 
 
 def eval_input(searcher, vocab):
-    input_sentence = ''
-    while(1):
+    while(True):
         try:
             # Get input sentence
-            input_sentence = input('> ')
+            input_sentence = input('You> ')
             # Check if it is quit case
             if input_sentence == 'q' or input_sentence == 'quit': break
             # Normalize sentence
@@ -877,10 +873,10 @@ def eval_input(searcher, vocab):
             output_words = evaluate(searcher, vocab, input_sentence)
             # Format and print response sentence
             output_words[:] = [x for x in output_words if not (x == 'EOS' or x == 'PAD')]
-            print('Bot:', ' '.join(output_words))
+            print('Chatbot>', ' '.join(output_words))
 
         except KeyError:
-            print("Error: Encountered unknown word.")
+            print("ERROR: Unknown word.")
 
 
 ######################################################################
