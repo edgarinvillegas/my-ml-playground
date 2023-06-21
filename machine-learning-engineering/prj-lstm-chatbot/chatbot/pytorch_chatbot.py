@@ -39,7 +39,7 @@ def extract_questions_answers(dataset):
     pairs = []
     row = next(data_iter, None)
     while row is not None:
-        question = row[1]
+        question = remove_question_words(row[1])
         answer = row[2][0]
         pairs.append([question, answer])
         row = next(data_iter, None)
@@ -172,10 +172,19 @@ def read_vocabs(dataset):
     vocab = Vocab()
     return vocab, pairs
 
+# Remove question words to make phrases shorter
+def remove_question_words(str):
+    return str.lower().replace('?', '').replace('what', '').replace('who', '').replace('why', '').replace('how', '').replace('when', '').replace('where', '').replace('which', '').replace('whose', '').strip()
+
+# To make question and answer of similar sizes
+def are_size_compatible(answer, question):
+    l1, l2 = len(answer), len(question)
+    return abs(l1 - l2) < max(l1, l2) * 0.5
+
 # Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
 def filter_pair(p):
     # Input sequences need to preserve the last word for EOS token
-    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH
+    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH and are_size_compatible(p[0], p[1])
 
 # Filter qa pairs using filter_pair predicate
 def filter_pairs(pairs):
@@ -953,8 +962,8 @@ clip = 50.0
 teacher_forcing_ratio = 0.5
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
-# n_iteration = 4000
-n_iteration = 1
+n_iteration = 4000
+# n_iteration = 1
 
 print_every = 1
 save_every = 500
