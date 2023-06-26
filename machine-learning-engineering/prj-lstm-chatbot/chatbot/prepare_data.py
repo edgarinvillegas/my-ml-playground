@@ -4,11 +4,6 @@ import unicodedata
 from io import open
 import itertools
 
-from torchtext.datasets import SQuAD2
-
-train_dataset = SQuAD2(split='dev')
-train_iter = iter(train_dataset)
-
 def print_lines(file, n=10):
     with open(file, 'rb') as datafile:
         lines = datafile.readlines()

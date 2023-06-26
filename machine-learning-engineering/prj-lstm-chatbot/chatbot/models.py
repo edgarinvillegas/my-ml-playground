@@ -4,9 +4,6 @@ import torch.nn as nn
 import random
 from chatbot.globals import SOS_TOKEN, PAD_TOKEN, EOS_TOKEN, device
 
-######################################################################
-# Define Models
-
 class Encoder(nn.Module):
     def __init__(self, hidden_size, embedding):
         super(Encoder, self).__init__()
@@ -104,16 +101,47 @@ class Seq2Seq(nn.Module):
                 decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
                 decoder_input = decoder_input.to(device)
             # Calculate and accumulate loss
-            mask_loss, nTotal = mask_NLLLoss(decoder_output, trg[t], mask[t])
+            mask_loss, n_total = mask_NLLLoss(decoder_output, trg[t], mask[t])
             loss += mask_loss
-            print_losses.append(mask_loss.item() * nTotal)
-            n_totals += nTotal
+            print_losses.append(mask_loss.item() * n_total)
+            n_totals += n_total
         return loss, n_totals, print_losses
 
+# Class to run greedy search decoding
+class SearchDecoder(nn.Module):
+    def __init__(self, seq2seq):
+        super(SearchDecoder, self).__init__()
+        self.seq2seq = seq2seq
 
+    def forward(self, input_seq, input_length, max_length):
+        # Forward input through encoder model
+        encoder_outputs, encoder_hidden = self.seq2seq.encoder(input_seq, input_length)
+        # Prepare encoder's final hidden layer to be first hidden input to the decoder
+        decoder_hidden = encoder_hidden[:self.seq2seq.decoder.num_layers]
+        # Initialize decoder input with SOS_token
+        decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_TOKEN
+        # Initialize tensors to append decoded words to
+        tokens = torch.zeros([0], device=device, dtype=torch.long)
+        scores = torch.zeros([0], device=device)
+        # Iteratively decode one word token at a time
+        for _ in range(max_length):
+            # Forward pass through decoder
+            decoder_output, decoder_hidden = self.seq2seq.decoder(decoder_input, decoder_hidden, encoder_outputs)
+            # Obtain most likely word token and its softmax score
+            decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
+            # Record token and score
+            tokens = torch.cat((tokens, decoder_input), dim=0)
+            scores = torch.cat((scores, decoder_scores), dim=0)
+            # Prepare current token to be next decoder input (add a dimension)
+            decoder_input = torch.unsqueeze(decoder_input, 0)
+        # Return collections of word tokens and scores
+        return tokens, scores
+
+
+# Use cross entropy loss with masking
 def mask_NLLLoss(inp, target, mask):
-    nTotal = mask.sum()
-    crossEntropy = -torch.log(torch.gather(inp, 1, target.view(-1, 1)).squeeze(1))
-    loss = crossEntropy.masked_select(mask).mean()
+    n_total = mask.sum()
+    cross_entropy = -torch.log(torch.gather(inp, 1, target.view(-1, 1)).squeeze(1))
+    loss = cross_entropy.masked_select(mask).mean()
     loss = loss.to(device)
-    return loss, nTotal.item()
+    return loss, n_total.item()
