@@ -904,7 +904,7 @@ batch_size = 64
 
 checkpoint_iter = 4000
 load_filename = os.path.join(save_dir, '{}'.format(hidden_size), '{}_checkpoint.tar'.format(checkpoint_iter))
-# load_filename = None
+# load_filename = None      # Comment this to train from scratch, uncomment to load saved checkpoint
 
 # Load model if a loadFilename is provided
 if load_filename:
