@@ -15,17 +15,13 @@ import unicodedata
 from io import open
 import itertools
 
-
-dataset_name = "squad"
-dataset_path = os.path.join("data", dataset_name)
-
 USE_GPU = torch.cuda.is_available()
 device = torch.device("cuda" if USE_GPU else "cpu")
 
 ####################
 from torchtext.datasets import SQuAD2
 
-train_dataset = SQuAD2(split='train')
+train_dataset = SQuAD2(split='dev')
 train_iter = iter(train_dataset)
 
 def print_lines(file, n=10):
@@ -45,9 +41,7 @@ def extract_questions_answers(dataset):
         row = next(data_iter, None)
     return pairs
 
-data_folder = "save"
-
-MAX_LENGTH = 10  # Maximum sentence length to consider
+MAX_SENTENCE_LENGTH = 10  # Maximum sentence length to consider
 
 # Thanks to https://stackoverflow.com/a/518232/2809427
 def unicode_to_ascii(s):
@@ -141,11 +135,11 @@ class Vocab:
 # ``unicodeToAscii``. Next, we should convert all letters to lowercase and
 # trim all non-letter characters except for basic punctuation
 # (``normalizeString``). Finally, to aid in training convergence, we will
-# filter out sentences with length greater than the ``MAX_LENGTH``
+# filter out sentences with length greater than the ``MAX_SENTENCE_LENGTH``
 # threshold (``filterPairs``).
 #
 
-MAX_LENGTH = 10  # Maximum sentence length to consider
+MAX_SENTENCE_LENGTH = 10  # Maximum sentence length to consider
 
 # Turn a Unicode string to plain ASCII, thanks to
 # https://stackoverflow.com/a/518232/2809427
@@ -181,10 +175,10 @@ def are_size_compatible(answer, question):
     l1, l2 = len(answer), len(question)
     return abs(l1 - l2) < max(l1, l2) * 0.5
 
-# Returns True if both sentences in a pair 'p' are under the MAX_LENGTH threshold
+# Returns True if both sentences in a pair 'p' are under the MAX_SENTENCE_LENGTH threshold
 def filter_pair(p):
     # Input sequences need to preserve the last word for EOS token
-    return len(p[0].split(' ')) < MAX_LENGTH and len(p[1].split(' ')) < MAX_LENGTH and are_size_compatible(p[0], p[1])
+    return len(p[0].split(' ')) < MAX_SENTENCE_LENGTH and len(p[1].split(' ')) < MAX_SENTENCE_LENGTH and are_size_compatible(p[0], p[1])
 
 # Filter qa pairs using filter_pair predicate
 def filter_pairs(pairs):
@@ -204,7 +198,7 @@ def load_prepare_data(dataset):
     return vocab, pairs
 
 # Load/Assemble voc and pairs
-save_dir = os.path.join("data", "save")
+save_dir = os.path.join("checkpoints")
 vocab, pairs = load_prepare_data(train_dataset)
 # Print some pairs to validate
 print("\npairs:")
@@ -705,24 +699,24 @@ def train_step(input_variable, lengths, target_variable, mask, max_target_len, s
 # to run inference, or we can continue training right where we left off.
 #
 
-def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration,
-               batch_size, print_every, save_every, clip, loadFilename):
+def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, epochs,
+               batch_size, print_every, save_every, clip, load_filename):
 
     # Load batches for each iteration
     training_batches = [batch_to_train_data(vocab, [random.choice(pairs) for _ in range(batch_size)])
-                        for _ in range(n_iteration)]
+                        for _ in range(epochs)]
 
     # Initializations
     print('Initializing ...')
     start_iteration = 1
     print_loss = 0
-    if loadFilename:
+    if load_filename:
         start_iteration = checkpoint['iteration'] + 1
 
     # Training loop
     print("Training...")
-    for iteration in range(start_iteration, n_iteration + 1):
-        training_batch = training_batches[iteration - 1]
+    for epoch in range(start_iteration, epochs + 1):
+        training_batch = training_batches[epoch - 1]
         # Extract fields from batch
         input_variable, lengths, target_variable, mask, max_target_len = training_batch
 
@@ -732,18 +726,18 @@ def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embe
         print_loss += loss
 
         # Print progress
-        if iteration % print_every == 0:
+        if epoch % print_every == 0:
             print_loss_avg = print_loss / print_every
-            print("Iteration: {}; Percent complete: {:.1f}%; Average loss: {:.4f}".format(iteration, iteration / n_iteration * 100, print_loss_avg))
+            print("Epoch: {}; Completion: {:.1f}%; Avg loss: {:.4f}".format(epoch, epoch / epochs * 100, print_loss_avg))
             print_loss = 0
 
         # Save checkpoint
-        if (iteration % save_every == 0):
+        if (epoch % save_every == 0):
             directory = os.path.join(save_dir, '{}'.format(hidden_size))
             if not os.path.exists(directory):
                 os.makedirs(directory)
             torch.save({
-                'iteration': iteration,
+                'iteration': epoch,
                 'vocab_dict': vocab.__dict__,
                 'encoder': encoder.state_dict(),
                 'encoder_optimizer': encoder_optimizer.state_dict(),
@@ -751,7 +745,7 @@ def train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embe
                 'decoder_optimizer': decoder_optimizer.state_dict(),
                 'loss': loss,
                 'embedding': embedding.state_dict()
-            }, os.path.join(directory, '{}_{}.tar'.format(iteration, 'checkpoint')))
+            }, os.path.join(directory, '{}_{}.tar'.format(epoch, 'checkpoint')))
 
 
 ######################################################################
@@ -851,7 +845,7 @@ class SearchDecoder(nn.Module):
 # and prompting the user to enter another sentence.
 #
 
-def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
+def evaluate(searcher, vocab, sentence, max_sentence_length=MAX_SENTENCE_LENGTH):
     ### Format input sentence as a batch
     # words -> indexes
     indexes_batch = [get_indexes_from_sentence(vocab, sentence)]
@@ -863,7 +857,7 @@ def evaluate(searcher, vocab, sentence, max_length=MAX_LENGTH):
     input_batch = input_batch.to(device)
     lengths = lengths.to(device)
     # Decode sentence with searcher
-    tokens, scores = searcher(input_batch, lengths, max_length)
+    tokens, scores = searcher(input_batch, lengths, max_sentence_length)
     # indexes -> words
     decoded_words = [vocab.index2word[token.item()] for token in tokens]
     return decoded_words
@@ -909,13 +903,12 @@ batch_size = 64
 # Set checkpoint to load from; set to None if starting from scratch
 
 checkpoint_iter = 4000
-load_filename = os.path.join(save_dir, dataset_name,
-                           '{}'.format(hidden_size),
-                           '{}_checkpoint.tar'.format(checkpoint_iter))
-load_filename = None
+load_filename = os.path.join(save_dir, '{}'.format(hidden_size), '{}_checkpoint.tar'.format(checkpoint_iter))
+# load_filename = None
 
 # Load model if a loadFilename is provided
 if load_filename:
+    print('Loading from ', load_filename)
     # If loading on same machine the model was trained on
     checkpoint = torch.load(load_filename)
     # If loading a model trained on GPU to CPU
@@ -943,7 +936,7 @@ if load_filename:
 # Use appropriate device
 encoder = encoder.to(device)
 decoder = decoder.to(device)
-print('Models built and ready to go!')
+print('Ready!')
 
 
 ######################################################################
@@ -962,8 +955,7 @@ clip = 50.0
 teacher_forcing_ratio = 0.5
 learning_rate = 0.0001
 decoder_learning_ratio = 5.0
-n_iteration = 4000
-# n_iteration = 1
+epochs = 4000
 
 print_every = 1
 save_every = 500
@@ -982,7 +974,7 @@ if load_filename:
 
 # Run training iterations
 print("Starting Training!")
-train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, n_iteration, batch_size,
+train_loop(vocab, pairs, seq2seq, encoder_optimizer, decoder_optimizer, embedding, save_dir, epochs, batch_size,
            print_every, save_every, clip, load_filename)
 
 
