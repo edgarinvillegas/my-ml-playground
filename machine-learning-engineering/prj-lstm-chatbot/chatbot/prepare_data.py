@@ -134,16 +134,16 @@ def filter_pairs(pairs):
     return [pair for pair in pairs if filter_pair(pair)]
 
 def load_prepare_data(dataset):
-    print("Start preparing training data ...")
+    print("Preparing training data...")
     vocab, pairs = read_vocabs(dataset)
-    print("Read {!s} sentence pairs".format(len(pairs)))
+    # print("Read {!s} sentence pairs".format(len(pairs)))
     pairs = filter_pairs(pairs)
     print("Trimmed to {!s} sentence pairs".format(len(pairs)))
-    print("Counting words...")
+    # print("Counting words...")
     for pair in pairs:
         vocab.add_qa(pair[0])
         vocab.add_qa(pair[1])
-    print("Counted words:", vocab.num_words)
+    print("Counted ", vocab.num_words, " words in vocab")
     return vocab, pairs
 
 def trim_unfrequent_words(vocab, pairs, MIN_COUNT):

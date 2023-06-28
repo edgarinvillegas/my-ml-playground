@@ -68,7 +68,6 @@ class Seq2Seq(nn.Module):
         self.decoder = Decoder(embedding, decoder_hidden_size, decoder_output_size)
 
     def forward_batch(self, src, trg, max_target_len, lengths, mask, teacher_forcing_ratio=0.5, batch_size=1):
-        # Set device options
         src = src.to(device)
         lengths = lengths.to(device)
         trg = trg.to(device)
@@ -84,10 +83,8 @@ class Seq2Seq(nn.Module):
         decoder_input = decoder_input.to(device)
         # Set initial decoder hidden state to the encoder's final hidden state
         decoder_hidden = encoder_hidden[:self.decoder.num_layers]
-        # Determine if we are using teacher forcing this iteration
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
         # Forward batch of sequences through decoder one time step at a time
-        # print('max_target_len: ', max_target_len)
         for t in range(max_target_len):
             decoder_output, decoder_hidden = self.decoder(
                 decoder_input, decoder_hidden, encoder_outputs
@@ -100,7 +97,6 @@ class Seq2Seq(nn.Module):
                 _, topi = decoder_output.topk(1)
                 decoder_input = torch.LongTensor([[topi[i][0] for i in range(batch_size)]])
                 decoder_input = decoder_input.to(device)
-            # Calculate and accumulate loss
             mask_loss, n_total = mask_NLLLoss(decoder_output, trg[t], mask[t])
             loss += mask_loss
             print_losses.append(mask_loss.item() * n_total)
@@ -120,21 +116,17 @@ class SearchDecoder(nn.Module):
         decoder_hidden = encoder_hidden[:self.seq2seq.decoder.num_layers]
         # Initialize decoder input with SOS_token
         decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_TOKEN
-        # Initialize tensors to append decoded words to
         tokens = torch.zeros([0], device=device, dtype=torch.long)
         scores = torch.zeros([0], device=device)
-        # Iteratively decode one word token at a time
+
         for _ in range(max_length):
             # Forward pass through decoder
             decoder_output, decoder_hidden = self.seq2seq.decoder(decoder_input, decoder_hidden, encoder_outputs)
-            # Obtain most likely word token and its softmax score
             decoder_scores, decoder_input = torch.max(decoder_output, dim=1)
-            # Record token and score
             tokens = torch.cat((tokens, decoder_input), dim=0)
             scores = torch.cat((scores, decoder_scores), dim=0)
             # Prepare current token to be next decoder input (add a dimension)
             decoder_input = torch.unsqueeze(decoder_input, 0)
-        # Return collections of word tokens and scores
         return tokens, scores
 
 
