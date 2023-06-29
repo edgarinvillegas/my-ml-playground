@@ -3,6 +3,7 @@ import re
 import unicodedata
 from io import open
 import itertools
+from globals import MAX_SENTENCE_LENGTH
 
 def print_lines(file, n=10):
     with open(file, 'rb') as datafile:
@@ -20,8 +21,6 @@ def extract_questions_answers(dataset):
         pairs.append([question, answer])
         row = next(data_iter, None)
     return pairs
-
-MAX_SENTENCE_LENGTH = 10  # Maximum sentence length to consider
 
 # Thanks to https://stackoverflow.com/a/518232/2809427
 def unicode_to_ascii(s):

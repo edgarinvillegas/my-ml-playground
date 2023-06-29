@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import random
-from chatbot.globals import SOS_TOKEN, PAD_TOKEN, EOS_TOKEN, device
+from globals import SOS_TOKEN, device
 
 class Encoder(nn.Module):
     def __init__(self, hidden_size, embedding):
