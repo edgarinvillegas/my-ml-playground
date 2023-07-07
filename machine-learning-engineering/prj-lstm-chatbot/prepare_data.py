@@ -116,7 +116,8 @@ def read_vocabs(dataset):
 
 # Remove question words to make phrases shorter
 def remove_question_words(str):
-    return str.lower().replace('?', '').replace('what', '').replace('who', '').replace('why', '').replace('how', '').replace('when', '').replace('where', '').replace('which', '').replace('whose', '').strip()
+    # return str.lower().replace('?', '').replace('what', '').replace('who', '').replace('why', '').replace('how', '').replace('when', '').replace('where', '').replace('which', '').replace('whose', '').strip()
+    return str.lower().replace('?', '').strip()
 
 # To make question and answer of similar sizes
 def are_size_compatible(answer, question):

@@ -11,12 +11,12 @@ class Encoder(nn.Module):
         self.num_layers = 2
         self.embedding = embedding
 
-        self.gru = nn.GRU(hidden_size, hidden_size, self.num_layers, dropout=0.1, bidirectional=True)
+        self.lstm = nn.LSTM(hidden_size, hidden_size, self.num_layers, dropout=0.1, bidirectional=True)
 
     def forward(self, input_sequence, input_lengths, hidden=None):
         embedded = self.embedding(input_sequence)
         packed_sequence = nn.utils.rnn.pack_padded_sequence(embedded, input_lengths.to('cpu'))
-        output, hidden = self.gru(packed_sequence, hidden)
+        output, hidden = self.lstm(packed_sequence, hidden)
         output, _ = nn.utils.rnn.pad_packed_sequence(output)
         output = output[:, :, :self.hidden_size] + output[:, : ,self.hidden_size:]
         return output, hidden
@@ -42,13 +42,14 @@ class Decoder(nn.Module):
         self.embedding = embedding
         self.emb_dropout = nn.Dropout(dropout)
         self.concat = nn.Linear(hidden_size * 2, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size, self.num_layers, dropout=dropout)
+        self.lstm = nn.LSTM(hidden_size, hidden_size, self.num_layers, dropout=dropout)
+
         self.out = nn.Linear(hidden_size, output_size)
         self.attn = Attention()
 
     def forward(self, input_step, prev_hidden, enc_outputs):
         embedded = self.emb_dropout(self.embedding(input_step))
-        rnn_output, hidden = self.gru(embedded, prev_hidden)
+        rnn_output, hidden = self.lstm(embedded, prev_hidden)
         attention_weights = self.attn(rnn_output, enc_outputs)
         context_vector = attention_weights.bmm(enc_outputs.transpose(0, 1))
         rnn_output = rnn_output.squeeze(0)
@@ -76,13 +77,23 @@ class Seq2Seq(nn.Module):
         loss = 0
         print_losses = []
         n_totals = 0
+
         # Forward pass through encoder
         encoder_outputs, encoder_hidden = self.encoder(src, lengths)
+
         # Create initial decoder input (start with SOS tokens for each sentence)
         decoder_input = torch.LongTensor([[SOS_TOKEN for _ in range(batch_size)]])
         decoder_input = decoder_input.to(device)
+
         # Set initial decoder hidden state to the encoder's final hidden state
-        decoder_hidden = encoder_hidden[:self.decoder.num_layers]
+        # Got from https://discuss.pytorch.org/t/how-to-change-gru-to-lstm-in-chatbot-tutorial/30417/6
+        # Get the encoder final h_hidden_state
+        encoder_h_hidden, encoder_c_hidden = encoder_hidden
+        decoder_h_hidden = encoder_h_hidden[:self.decoder.num_layers]
+        decoder_c_hidden = encoder_c_hidden[:self.decoder.num_layers]
+        # Recombine the final hidden states as hidden tuple
+        decoder_hidden = (decoder_h_hidden, decoder_c_hidden)
+
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
         # Forward batch of sequences through decoder one time step at a time
         for t in range(max_target_len):
@@ -113,7 +124,13 @@ class SearchDecoder(nn.Module):
         # Forward input through encoder model
         encoder_outputs, encoder_hidden = self.seq2seq.encoder(input_seq, input_length)
         # Prepare encoder's final hidden layer to be first hidden input to the decoder
-        decoder_hidden = encoder_hidden[:self.seq2seq.decoder.num_layers]
+        # Got from https://discuss.pytorch.org/t/how-to-change-gru-to-lstm-in-chatbot-tutorial/30417/6
+        encoder_h_hidden, encoder_c_hidden = encoder_hidden
+        decoder_h_hidden = encoder_h_hidden[:self.seq2seq.decoder.num_layers]
+        decoder_c_hidden = encoder_c_hidden[:self.seq2seq.decoder.num_layers]
+        # Recombine the final hidden states as hidden tuple
+        decoder_hidden = (decoder_h_hidden, decoder_c_hidden)
+
         # Initialize decoder input with SOS_token
         decoder_input = torch.ones(1, 1, device=device, dtype=torch.long) * SOS_TOKEN
         tokens = torch.zeros([0], device=device, dtype=torch.long)
